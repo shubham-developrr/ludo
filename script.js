@@ -7,11 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const winnerOverlay = document.getElementById('winner-overlay');
     const winnerMessage = document.getElementById('winner-message');
     const restartBtn = document.getElementById('restart-btn');
+   
 
     const players = ['red', 'green', 'yellow', 'blue'];
     const colors = { red: '#ff4d4d', green: '#4caf50', yellow: '#ffeb3b', blue: '#2196f3' };
     const startPositions = { red: 1, green: 14, yellow: 27, blue: 40 };
-    const homeEntrances = { red: 52, green: 52, yellow: 64, blue: 70 };
+    const homeEntrances = { red: 52, green: 58, yellow: 64, blue: 70 };
     const homePaths = {
         red: [52, 53, 54, 55, 56, 57],
         green: [58, 59, 60, 61, 62, 63],
@@ -38,10 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         {r:9,c:14}, {r:9,c:13}, {r:9,c:12}, {r:9,c:11}, {r:9,c:10},
         {r:10,c:9}, {r:11,c:9}, {r:12,c:9}, {r:13,c:9}, {r:14,c:9},
         {r:15,c:9}, {r:15,c:8}, {r:15,c:7},
+        
         // Yellow Path
         {r:14,c:7}, {r:13,c:7}, {r:12,c:7}, {r:11,c:7}, {r:10,c:7},
         {r:9,c:6}, {r:9,c:5}, {r:9,c:4}, {r:9,c:3}, {r:9,c:2},
-        {r:9,c:1}, {r:8,c:1}, {r:7,c:1}
+        {r:9,c:1}, {r:8,c:1}, {r:7,c:1},
+        
     ];
 
     const homePathCoords = {
@@ -315,3 +318,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initGame();
 });
+const currentPathIndex = pathCoords.findIndex(p => p.r === token.element.parentElement.style.gridRow.slice(0,-2) && p.c === token.element.parentElement.style.gridColumn.slice(0,-2)) + 1;
+if (existingTokens.length > 0 && !safeSpots.includes(token.position)) {
+    let offset = existingTokens.length * 5;
+    token.element.style.transform = `translate(${offset}px, ${offset}px)`;
+} else {
+    token.element.style.transform = 'translate(0,0)';
+}
+const stepsToHomeEntrance = (homeEntrance >= token.position) 
+    ? homeEntrance - token.position 
+    : (52 - token.position) + homeEntrance;
+// ...
+if (diceValue > stepsToHomeEntrance + 1) {
+    // Move token to home entrance
+    token.position = homeEntrance;
+}
+function moveToken(token) {
+    document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
+
+    // Case 1: Token is in the base, needs a 6 to get out
+    if (token.position === -1 && diceValue === 6) {
+        token.position = startPositions[token.color];
+    
+    // Case 2: Token is already in its final home path
+    } else if (token.position > 51) {
+        const homePath = homePaths[token.color];
+        const currentHomeIndex = homePath.indexOf(token.position);
+        token.position = homePath[currentHomeIndex + diceValue];
+
+    // Case 3: Token is on the main board
+    } else {
+        const homeEntrance = homeEntrances[token.color];
+        // The last square on the main path before the token's home path entrance.
+        const lapEndPosition = (homeEntrance - 1 > 0) ? homeEntrance - 1 : 52; 
+
+        // Check if the move will pass or land on the entrance
+        let newPos = token.position + diceValue;
+
+        // Logic to handle entering the home path
+        if ( (token.position <= lapEndPosition && newPos > lapEndPosition) || 
+             (lapEndPosition < token.position && newPos > 52 && (newPos % 52) > lapEndPosition) ) {
+            
+            const stepsIntoHome = newPos - lapEndPosition - 1;
+            token.position = homePaths[token.color][stepsIntoHome];
+        } else {
+            // Standard move on the circular main path
+            token.position = (token.position + diceValue - 1) % 52 + 1;
+        }
+    }
+    
+    // Check if token reached the final home spot
+    if (token.position === homePaths[token.color][5]) {
+        token.isHome = true;
+    }
+
+    updateBoard();
+    checkCapture(token);
+    
+    if (diceValue === 6 || token.isHome || captureWasMade) { // Assume checkCapture returns true on a capture
+        resetTurn(); // Give player another turn
+    } else {
+        nextTurn();
+    }
+    checkWin();
+}
