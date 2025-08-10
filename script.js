@@ -101,22 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createTokens() {
         tokens = {};
+        document.querySelectorAll('.token').forEach(t => t.remove());
         players.forEach(player => {
             tokens[player] = [];
             const base = document.querySelector(`#${player}-base .home-area`);
-            base.innerHTML = '';
+            const yardSpots = base.querySelectorAll('.token-yard');
+
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
                 tokenEl.classList.add('token', `${player}-token`);
                 tokenEl.id = `${player}-token-${i}`;
                 
-                const tokenObj = { id: i, color: player, position: -1, element: tokenEl, isHome: false };
+                const tokenObj = {
+                    id: i,
+                    color: player,
+                    position: -1,
+                    element: tokenEl,
+                    isHome: false,
+                    yardElement: yardSpots[i]
+                };
                 tokens[player].push(tokenObj);
 
-                const yardSpot = document.createElement('div');
-                yardSpot.classList.add('token-yard');
-                yardSpot.appendChild(tokenEl);
-                base.appendChild(yardSpot);
+                board.appendChild(tokenEl);
                 
                 tokenEl.addEventListener('click', () => onTokenClick(tokenObj));
             }
@@ -203,38 +209,52 @@ document.addEventListener('DOMContentLoaded', () => {
         moveToken(token);
     }
 
-    function moveToken(token) {
+    async function moveToken(token) {
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
+        diceRolled = false; // Prevent other moves during animation
+
+        const moves = [];
+        let finalPosition;
 
         if (token.position === -1 && diceValue === 6) {
-            token.position = startPositions[token.color];
+            finalPosition = startPositions[token.color];
+            moves.push(finalPosition);
         } else if (token.position > 0) {
-            if (token.position > 100) {
-                const homePath = homePaths[token.color];
-                const currentHomeIndex = homePath.indexOf(token.position);
-                const newHomeIndex = currentHomeIndex + diceValue;
-                token.position = homePath[newHomeIndex];
-                if (newHomeIndex === homePath.length - 1) {
-                    token.isHome = true;
-                }
-            } else {
-                const path = playerPaths[token.color];
-                const currentPathIndex = path.indexOf(token.position);
-                const newPathIndex = currentPathIndex + diceValue;
+            const path = playerPaths[token.color];
+            const currentPathIndex = path.indexOf(token.position);
 
-                if (newPathIndex >= 51) {
+            for (let i = 1; i <= diceValue; i++) {
+                const nextPathIndex = currentPathIndex + i;
+                if (token.position > 100) { // In home path
                     const homePath = homePaths[token.color];
-                    const stepsIntoHome = newPathIndex - 51;
-                    if (stepsIntoHome < homePath.length) {
-                        token.position = homePath[stepsIntoHome];
-                        if (stepsIntoHome === homePath.length - 1) token.isHome = true;
+                    const currentHomeIndex = homePath.indexOf(token.position);
+                    const newHomeIndex = currentHomeIndex + i;
+                    if(newHomeIndex < homePath.length) moves.push(homePath[newHomeIndex]);
+                } else { // On main path
+                    if (nextPathIndex >= 51) {
+                        const homePath = homePaths[token.color];
+                        const stepsIntoHome = nextPathIndex - 51;
+                        if (stepsIntoHome < homePath.length) {
+                           moves.push(homePath[stepsIntoHome]);
+                        }
+                    } else {
+                        moves.push(path[nextPathIndex]);
                     }
-                } else {
-                    token.position = path[newPathIndex];
                 }
             }
         }
         
+        if (moves.length > 0) {
+            for (let i = 0; i < moves.length; i++) {
+                token.position = moves[i];
+                updateBoard();
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+            if (token.position === homePaths[token.color][5]) {
+                token.isHome = true;
+            }
+        }
+
         const captureOccurred = checkCapture(token);
         updateBoard();
         
@@ -248,62 +268,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    function getCoordinatesForPosition(token) {
+        let targetCell;
+        if (token.position === -1) {
+            targetCell = token.yardElement;
+        } else if (token.position > 100) {
+            if (token.isHome) {
+                targetCell = document.querySelector(`#home-triangle`);
+            } else {
+                targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
+            }
+        } else {
+            targetCell = document.querySelector(`[data-path-index='${token.position}']`);
+        }
+
+        if (targetCell) {
+            const boardRect = board.getBoundingClientRect();
+            const cellRect = targetCell.getBoundingClientRect();
+            const boardStyle = getComputedStyle(board);
+            const boardPaddingLeft = parseFloat(boardStyle.paddingLeft) || 0;
+            const boardPaddingTop = parseFloat(boardStyle.paddingTop) || 0;
+            const x = cellRect.left - boardRect.left - boardPaddingLeft;
+            const y = cellRect.top - boardRect.top - boardPaddingTop;
+            return { x, y };
+        }
+        return { x: 0, y: 0 };
+    }
+
     function updateBoard() {
+        const positionMap = new Map();
         players.forEach(player => {
             tokens[player].forEach(token => {
-                let targetCell;
-                if (token.position === -1) {
-                    const base = document.querySelector(`#${player}-base .home-area`);
-                    const yardSpots = base.querySelectorAll('.token-yard');
-                    for(let spot of yardSpots) {
-                        if(spot.childElementCount === 0) {
-                            targetCell = spot;
-                            break;
-                        }
-                    }
-                } else if (token.position > 100) {
-                    if (token.isHome) {
-                        targetCell = document.querySelector(`#home-triangle`);
-                    } else {
-                        targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-                    }
-                } else {
-                    targetCell = document.querySelector(`[data-path-index='${token.position}']`);
-                }
-                if (targetCell) targetCell.appendChild(token.element);
-            });
-        });
+                const { x, y } = getCoordinatesForPosition(token);
 
-        document.querySelectorAll('.cell').forEach(cell => {
-            const tokensInCell = cell.querySelectorAll('.token');
-            if (tokensInCell.length > 1) {
-                tokensInCell.forEach((tokenEl, i) => {
-                    tokenEl.style.transform = `translate(${i * 4}px, ${i * 4}px)`;
-                    tokenEl.style.zIndex = 10 + i;
-                });
-            } else if (tokensInCell.length === 1) {
-                tokensInCell[0].style.transform = 'translate(0,0)';
-                tokensInCell[0].style.zIndex = 10;
-            }
+                let stackIndex = 0;
+                if (token.position !== -1 && !token.isHome) {
+                    if (!positionMap.has(token.position)) {
+                        positionMap.set(token.position, 0);
+                    }
+                    stackIndex = positionMap.get(token.position);
+                    positionMap.set(token.position, stackIndex + 1);
+                }
+
+                const stackOffsetX = stackIndex * 5;
+                const stackOffsetY = stackIndex * 5;
+
+                token.element.style.transform = `translate(${x + stackOffsetX}px, ${y + stackOffsetY}px)`;
+                token.element.style.zIndex = 10 + stackIndex;
+            });
         });
     }
 
     function checkCapture(movedToken) {
         if (movedToken.position > 100 || safeSpots.includes(movedToken.position)) return false;
 
-        const targetCell = movedToken.element.parentElement;
-        if (!targetCell) return false;
-
-        const tokensInCell = Array.from(targetCell.querySelectorAll('.token'));
         let captureOccurred = false;
-
-        tokensInCell.forEach(tEl => {
-            if (tEl.id === movedToken.element.id) return;
-            const t = findTokenByElement(tEl);
-            if (t && t.color !== movedToken.color) {
-                t.position = -1;
-                captureOccurred = true;
-            }
+        players.forEach(player => {
+            tokens[player].forEach(t => {
+                if (t.id !== movedToken.id && t.position === movedToken.position && t.color !== movedToken.color) {
+                    t.element.classList.add('captured');
+                    t.position = -1;
+                    captureOccurred = true;
+                    setTimeout(() => {
+                        t.element.classList.remove('captured');
+                        updateBoard();
+                    }, 400);
+                }
+            });
         });
         return captureOccurred;
     }
@@ -370,5 +401,72 @@ document.addEventListener('DOMContentLoaded', () => {
     dice.addEventListener('click', rollDice);
     restartBtn.addEventListener('click', initGame);
 
+    // --- Theming Logic ---
+    const themeBtn = document.getElementById('theme-btn');
+    const themeMenu = document.getElementById('theme-menu');
+    const themeOptions = document.querySelectorAll('.theme-option');
+
+    themeBtn.addEventListener('click', () => {
+        themeMenu.classList.toggle('hidden');
+    });
+
+    themeOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const selectedTheme = option.dataset.theme;
+            applyTheme(selectedTheme);
+            themeMenu.classList.add('hidden');
+        });
+    });
+
+    // Load saved theme on startup
+    const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
+
+
+    // --- Music & Sound Logic ---
+    const music = document.getElementById('background-music');
+    const muteBtn = document.getElementById('mute-btn');
+    const volumeUpIcon = document.getElementById('volume-up-icon');
+    const volumeMuteIcon = document.getElementById('volume-mute-icon');
+    const musicMap = {
+        cyberpunk: 'assets/audio/cyberpunk.mp3', // Placeholder
+        egypt: 'assets/audio/egypt.mp3',       // Placeholder
+        jurassic: 'assets/audio/jurassic.mp3',   // Placeholder
+        space: 'assets/audio/space.mp3'          // Placeholder
+    };
+
+    function toggleMute() {
+        music.muted = !music.muted;
+        localStorage.setItem('ludoMuted', music.muted);
+        updateMuteButton();
+    }
+
+    function updateMuteButton() {
+        if (music.muted) {
+            volumeUpIcon.classList.add('hidden');
+            volumeMuteIcon.classList.remove('hidden');
+        } else {
+            volumeUpIcon.classList.remove('hidden');
+            volumeMuteIcon.classList.add('hidden');
+        }
+    }
+
+    muteBtn.addEventListener('click', toggleMute);
+
+    function applyTheme(theme) {
+        document.body.className = '';
+        document.body.classList.add(`theme-${theme}`);
+        localStorage.setItem('ludoTheme', theme);
+
+        // Update music source and play
+        music.src = musicMap[theme];
+        music.play().catch(e => console.log("Audio play failed, user interaction needed."));
+    }
+
+    // Load saved mute state
+    const savedMuted = localStorage.getItem('ludoMuted') === 'true';
+    music.muted = savedMuted;
+    updateMuteButton();
+
+    applyTheme(savedTheme);
     initGame();
 });
