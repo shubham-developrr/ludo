@@ -104,24 +104,19 @@ document.addEventListener('DOMContentLoaded', () => {
         players.forEach(player => {
             tokens[player] = [];
             const base = document.querySelector(`#${player}-base .home-area`);
-            const yardSpots = base.querySelectorAll('.token-yard');
-
+            base.innerHTML = '';
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
                 tokenEl.classList.add('token', `${player}-token`);
                 tokenEl.id = `${player}-token-${i}`;
                 
-                const tokenObj = {
-                    id: i,
-                    color: player,
-                    position: -1,
-                    element: tokenEl,
-                    isHome: false,
-                    yardElement: yardSpots[i]
-                };
+                const tokenObj = { id: i, color: player, position: -1, element: tokenEl, isHome: false };
                 tokens[player].push(tokenObj);
 
-                board.appendChild(tokenEl);
+                const yardSpot = document.createElement('div');
+                yardSpot.classList.add('token-yard');
+                yardSpot.appendChild(tokenEl);
+                base.appendChild(yardSpot);
                 
                 tokenEl.addEventListener('click', () => onTokenClick(tokenObj));
             }
@@ -253,72 +248,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function getCoordinatesForPosition(token) {
-        let targetCell;
-        if (token.position === -1) {
-            targetCell = token.yardElement;
-        } else if (token.position > 100) {
-            if (token.isHome) {
-                targetCell = document.querySelector(`#home-triangle`);
-            } else {
-                targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-            }
-        } else {
-            targetCell = document.querySelector(`[data-path-index='${token.position}']`);
-        }
-
-        if (targetCell) {
-            const boardRect = board.getBoundingClientRect();
-            const cellRect = targetCell.getBoundingClientRect();
-            const boardStyle = getComputedStyle(board);
-            const boardPaddingLeft = parseFloat(boardStyle.paddingLeft);
-            const boardPaddingTop = parseFloat(boardStyle.paddingTop);
-            const x = cellRect.left - boardRect.left - boardPaddingLeft;
-            const y = cellRect.top - boardRect.top - boardPaddingTop;
-            return { x, y };
-        }
-        return { x: 0, y: 0 };
-    }
-
     function updateBoard() {
-        const positionMap = new Map();
         players.forEach(player => {
             tokens[player].forEach(token => {
-                const { x, y } = getCoordinatesForPosition(token);
-
-                let stackIndex = 0;
-                if (token.position !== -1 && !token.isHome) {
-                    if (!positionMap.has(token.position)) {
-                        positionMap.set(token.position, 0);
+                let targetCell;
+                if (token.position === -1) {
+                    const base = document.querySelector(`#${player}-base .home-area`);
+                    const yardSpots = base.querySelectorAll('.token-yard');
+                    for(let spot of yardSpots) {
+                        if(spot.childElementCount === 0) {
+                            targetCell = spot;
+                            break;
+                        }
                     }
-                    stackIndex = positionMap.get(token.position);
-                    positionMap.set(token.position, stackIndex + 1);
+                } else if (token.position > 100) {
+                    if (token.isHome) {
+                        targetCell = document.querySelector(`#home-triangle`);
+                    } else {
+                        targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
+                    }
+                } else {
+                    targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
-
-                const stackOffsetX = stackIndex * 5;
-                const stackOffsetY = stackIndex * 5;
-
-                token.element.style.transform = `translate(${x + stackOffsetX}px, ${y + stackOffsetY}px)`;
-                token.element.style.zIndex = 10 + stackIndex;
+                if (targetCell) targetCell.appendChild(token.element);
             });
+        });
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            const tokensInCell = cell.querySelectorAll('.token');
+            if (tokensInCell.length > 1) {
+                tokensInCell.forEach((tokenEl, i) => {
+                    tokenEl.style.transform = `translate(${i * 4}px, ${i * 4}px)`;
+                    tokenEl.style.zIndex = 10 + i;
+                });
+            } else if (tokensInCell.length === 1) {
+                tokensInCell[0].style.transform = 'translate(0,0)';
+                tokensInCell[0].style.zIndex = 10;
+            }
         });
     }
 
     function checkCapture(movedToken) {
         if (movedToken.position > 100 || safeSpots.includes(movedToken.position)) return false;
 
-        let captureOccurred = false;
-        const tokensToCheck = players.flat().map(p => tokens[p]).flat();
+        const targetCell = movedToken.element.parentElement;
+        if (!targetCell) return false;
 
-        tokensToCheck.forEach(t => {
-            if (t.id !== movedToken.id && t.position === movedToken.position && t.color !== movedToken.color) {
-                t.element.classList.add('captured');
+        const tokensInCell = Array.from(targetCell.querySelectorAll('.token'));
+        let captureOccurred = false;
+
+        tokensInCell.forEach(tEl => {
+            if (tEl.id === movedToken.element.id) return;
+            const t = findTokenByElement(tEl);
+            if (t && t.color !== movedToken.color) {
                 t.position = -1;
                 captureOccurred = true;
-                setTimeout(() => {
-                    t.element.classList.remove('captured');
-                    updateBoard();
-                }, 400);
             }
         });
         return captureOccurred;

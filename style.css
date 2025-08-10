@@ -36,7 +36,6 @@ body {
     gap: 20px;
 }
 #ludo-board {
-    position: relative;
     width: var(--board-size);
     height: var(--board-size);
     background-color: var(--medium-bg);
@@ -121,14 +120,8 @@ body {
     font-weight: bold;
     color: black;
     z-index: 10;
-    transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    transition: all 0.3s ease-in-out;
     cursor: pointer;
-}
-
-.token.captured {
-    opacity: 0;
-    transform: scale(0.1) !important;
-    transition: transform 0.3s ease-in, opacity 0.3s ease-in;
 }
 .red-token { background-color: var(--red); color: var(--red); }
 .green-token { background-color: var(--green); color: var(--green); }
