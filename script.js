@@ -101,28 +101,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createTokens() {
         tokens = {};
-        document.querySelectorAll('.token').forEach(t => t.remove());
         players.forEach(player => {
             tokens[player] = [];
             const base = document.querySelector(`#${player}-base .home-area`);
-            const yardSpots = base.querySelectorAll('.token-yard');
-
+            base.innerHTML = '';
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
                 tokenEl.classList.add('token', `${player}-token`);
                 tokenEl.id = `${player}-token-${i}`;
                 
-                const tokenObj = {
-                    id: i,
-                    color: player,
-                    position: -1,
-                    element: tokenEl,
-                    isHome: false,
-                    yardElement: yardSpots[i]
-                };
+                const tokenObj = { id: i, color: player, position: -1, element: tokenEl, isHome: false };
                 tokens[player].push(tokenObj);
 
-                board.appendChild(tokenEl);
+                const yardSpot = document.createElement('div');
+                yardSpot.classList.add('token-yard');
+                yardSpot.appendChild(tokenEl);
+                base.appendChild(yardSpot);
                 
                 tokenEl.addEventListener('click', () => onTokenClick(tokenObj));
             }
@@ -209,52 +203,40 @@ document.addEventListener('DOMContentLoaded', () => {
         moveToken(token);
     }
 
-    async function moveToken(token) {
+    function moveToken(token) {
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
-        diceRolled = false; // Prevent other moves during animation
-
-        const moves = [];
-        let finalPosition;
 
         if (token.position === -1 && diceValue === 6) {
-            finalPosition = startPositions[token.color];
-            moves.push(finalPosition);
+            token.position = startPositions[token.color];
         } else if (token.position > 0) {
-            const path = playerPaths[token.color];
-            const currentPathIndex = path.indexOf(token.position);
-
-            for (let i = 1; i <= diceValue; i++) {
-                const nextPathIndex = currentPathIndex + i;
-                if (token.position > 100) { // In home path
-                    const homePath = homePaths[token.color];
-                    const currentHomeIndex = homePath.indexOf(token.position);
-                    const newHomeIndex = currentHomeIndex + i;
-                    if(newHomeIndex < homePath.length) moves.push(homePath[newHomeIndex]);
-                } else { // On main path
-                    if (nextPathIndex >= 51) {
-                        const homePath = homePaths[token.color];
-                        const stepsIntoHome = nextPathIndex - 51;
-                        if (stepsIntoHome < homePath.length) {
-                           moves.push(homePath[stepsIntoHome]);
-                        }
-                    } else {
-                        moves.push(path[nextPathIndex]);
+            if (token.position > 100) { // In home path
+                const homePath = homePaths[token.color];
+                const currentHomeIndex = homePath.indexOf(token.position);
+                const newHomeIndex = currentHomeIndex + diceValue;
+                if (newHomeIndex < homePath.length) {
+                    token.position = homePath[newHomeIndex];
+                    if (newHomeIndex === homePath.length - 1) {
+                        token.isHome = true;
                     }
+                }
+            } else { // On main path
+                const path = playerPaths[token.color];
+                const currentPathIndex = path.indexOf(token.position);
+                const newPathIndex = currentPathIndex + diceValue;
+
+                if (newPathIndex >= 51) {
+                    const homePath = homePaths[token.color];
+                    const stepsIntoHome = newPathIndex - 51;
+                    if (stepsIntoHome < homePath.length) {
+                        token.position = homePath[stepsIntoHome];
+                        if (stepsIntoHome === homePath.length - 1) token.isHome = true;
+                    }
+                } else {
+                    token.position = path[newPathIndex];
                 }
             }
         }
         
-        if (moves.length > 0) {
-            for (let i = 0; i < moves.length; i++) {
-                token.position = moves[i];
-                updateBoard();
-                await new Promise(resolve => setTimeout(resolve, 150));
-            }
-            if (token.position === homePaths[token.color][5]) {
-                token.isHome = true;
-            }
-        }
-
         const captureOccurred = checkCapture(token);
         updateBoard();
         
@@ -268,73 +250,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function getCoordinatesForPosition(token) {
-        let targetCell;
-        if (token.position === -1) {
-            targetCell = token.yardElement;
-        } else if (token.position > 100) {
-            if (token.isHome) {
-                targetCell = document.querySelector(`#home-triangle`);
-            } else {
-                targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-            }
-        } else {
-            targetCell = document.querySelector(`[data-path-index='${token.position}']`);
-        }
-
-        if (targetCell) {
-            const boardRect = board.getBoundingClientRect();
-            const cellRect = targetCell.getBoundingClientRect();
-            const boardStyle = getComputedStyle(board);
-            const boardPaddingLeft = parseFloat(boardStyle.paddingLeft) || 0;
-            const boardPaddingTop = parseFloat(boardStyle.paddingTop) || 0;
-            const x = cellRect.left - boardRect.left - boardPaddingLeft;
-            const y = cellRect.top - boardRect.top - boardPaddingTop;
-            return { x, y };
-        }
-        return { x: 0, y: 0 };
-    }
-
     function updateBoard() {
-        const positionMap = new Map();
         players.forEach(player => {
             tokens[player].forEach(token => {
-                const { x, y } = getCoordinatesForPosition(token);
-
-                let stackIndex = 0;
-                if (token.position !== -1 && !token.isHome) {
-                    if (!positionMap.has(token.position)) {
-                        positionMap.set(token.position, 0);
+                let targetCell;
+                if (token.position === -1) {
+                    const base = document.querySelector(`#${player}-base .home-area`);
+                    const yardSpots = base.querySelectorAll('.token-yard');
+                    for(let spot of yardSpots) {
+                        if(spot.childElementCount === 0) {
+                            targetCell = spot;
+                            break;
+                        }
                     }
-                    stackIndex = positionMap.get(token.position);
-                    positionMap.set(token.position, stackIndex + 1);
+                } else if (token.position > 100) {
+                    if (token.isHome) {
+                        targetCell = document.querySelector(`#home-triangle`);
+                    } else {
+                        targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
+                    }
+                } else {
+                    targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
-
-                const stackOffsetX = stackIndex * 5;
-                const stackOffsetY = stackIndex * 5;
-
-                token.element.style.transform = `translate(${x + stackOffsetX}px, ${y + stackOffsetY}px)`;
-                token.element.style.zIndex = 10 + stackIndex;
+                if (targetCell) targetCell.appendChild(token.element);
             });
+        });
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            const tokensInCell = cell.querySelectorAll('.token');
+            if (tokensInCell.length > 1) {
+                tokensInCell.forEach((tokenEl, i) => {
+                    tokenEl.style.transform = `translate(${i * 4}px, ${i * 4}px)`;
+                    tokenEl.style.zIndex = 10 + i;
+                });
+            } else if (tokensInCell.length === 1) {
+                tokensInCell[0].style.transform = 'translate(0,0)';
+                tokensInCell[0].style.zIndex = 10;
+            }
         });
     }
 
     function checkCapture(movedToken) {
         if (movedToken.position > 100 || safeSpots.includes(movedToken.position)) return false;
 
+        const targetCell = movedToken.element.parentElement;
+        if (!targetCell) return false;
+
+        const tokensInCell = Array.from(targetCell.querySelectorAll('.token'));
         let captureOccurred = false;
-        players.forEach(player => {
-            tokens[player].forEach(t => {
-                if (t.id !== movedToken.id && t.position === movedToken.position && t.color !== movedToken.color) {
-                    t.element.classList.add('captured');
-                    t.position = -1;
-                    captureOccurred = true;
-                    setTimeout(() => {
-                        t.element.classList.remove('captured');
-                        updateBoard();
-                    }, 400);
-                }
-            });
+
+        tokensInCell.forEach(tEl => {
+            if (tEl.id === movedToken.element.id) return;
+            const t = findTokenByElement(tEl);
+            if (t && t.color !== movedToken.color) {
+                t.position = -1;
+                captureOccurred = true;
+            }
         });
         return captureOccurred;
     }
