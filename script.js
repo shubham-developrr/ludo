@@ -12,39 +12,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const players = ['red', 'green', 'yellow', 'blue'];
     const colors = { red: '#ff4d4d', green: '#4caf50', yellow: '#ffeb3b', blue: '#2196f3' };
     const startPositions = { red: 1, green: 14, yellow: 27, blue: 40 };
-    const homeEntrances = { red: 52, green: 58, yellow: 64, blue: 70 };
+    const lapEndPositions = { red: 51, green: 12, yellow: 25, blue: 38 };
     const homePaths = {
-        red: [52, 53, 54, 55, 56, 57],
-        green: [58, 59, 60, 61, 62, 63],
-        yellow: [64, 65, 66, 67, 68, 69],
-        blue: [70, 71, 72, 73, 74, 75]
+        red: [101, 102, 103, 104, 105, 106],
+        green: [201, 202, 203, 204, 205, 206],
+        yellow: [301, 302, 303, 304, 305, 306],
+        blue: [401, 402, 403, 404, 405, 406]
     };
 
     let currentPlayerIndex = 0;
     let diceValue = 0;
     let diceRolled = false;
     let tokens = {};
+    let consecutiveSixes = 0;
+    const playerPaths = {};
 
-    // Path coordinates for placing cells
     const pathCoords = [
-        // Red Path
-        {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6},
-        {r:6,c:7}, {r:5,c:7}, {r:4,c:7}, {r:3,c:7}, {r:2,c:7},
-        {r:1,c:7}, {r:1,c:8}, {r:1,c:9},
-        // Green Path
-        {r:2,c:9}, {r:3,c:9}, {r:4,c:9}, {r:5,c:9}, {r:6,c:9},
-        {r:7,c:10}, {r:7,c:11}, {r:7,c:12}, {r:7,c:13}, {r:7,c:14},
-        {r:7,c:15}, {r:8,c:15}, {r:9,c:15},
-        // Blue Path
-        {r:9,c:14}, {r:9,c:13}, {r:9,c:12}, {r:9,c:11}, {r:9,c:10},
-        {r:10,c:9}, {r:11,c:9}, {r:12,c:9}, {r:13,c:9}, {r:14,c:9},
-        {r:15,c:9}, {r:15,c:8}, {r:15,c:7},
-        
-        // Yellow Path
-        {r:14,c:7}, {r:13,c:7}, {r:12,c:7}, {r:11,c:7}, {r:10,c:7},
-        {r:9,c:6}, {r:9,c:5}, {r:9,c:4}, {r:9,c:3}, {r:9,c:2},
-        {r:9,c:1}, {r:8,c:1}, {r:7,c:1},
-        
+        {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6}, {r:6,c:7}, {r:5,c:7}, {r:4,c:7}, {r:3,c:7}, {r:2,c:7}, {r:1,c:7}, {r:1,c:8}, {r:1,c:9},
+        {r:2,c:9}, {r:3,c:9}, {r:4,c:9}, {r:5,c:9}, {r:6,c:9}, {r:7,c:10}, {r:7,c:11}, {r:7,c:12}, {r:7,c:13}, {r:7,c:14}, {r:7,c:15}, {r:8,c:15}, {r:9,c:15},
+        {r:9,c:14}, {r:9,c:13}, {r:9,c:12}, {r:9,c:11}, {r:9,c:10}, {r:10,c:9}, {r:11,c:9}, {r:12,c:9}, {r:13,c:9}, {r:14,c:9}, {r:15,c:9}, {r:15,c:8}, {r:15,c:7},
+        {r:14,c:7}, {r:13,c:7}, {r:12,c:7}, {r:11,c:7}, {r:10,c:7}, {r:9,c:6}, {r:9,c:5}, {r:9,c:4}, {r:9,c:3}, {r:9,c:2}, {r:9,c:1}, {r:8,c:1}, {r:7,c:1},
     ];
 
     const homePathCoords = {
@@ -56,8 +43,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const safeSpots = [1, 9, 14, 22, 27, 35, 40, 48];
 
+    function isBlock(position) {
+        if (position < 1 || position > 52 || safeSpots.includes(position)) {
+            return null;
+        }
+        const tokensAtPosition = [];
+        for (const player of players) {
+            for (const token of tokens[player]) {
+                if (token.position === position) {
+                    tokensAtPosition.push(token);
+                }
+            }
+        }
+        if (tokensAtPosition.length >= 2) {
+            const firstColor = tokensAtPosition[0].color;
+            if (tokensAtPosition.every(t => t.color === firstColor)) {
+                return firstColor;
+            }
+        }
+        return null;
+    }
+
     function createBoard() {
-        // Bases
         board.innerHTML = `
             <div id="red-base" class="base"><div class="home-area"></div></div>
             <div id="green-base" class="base"><div class="home-area"></div></div>
@@ -66,16 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="home-triangle"><div></div><div></div></div>
         `;
 
-        // Main path
         pathCoords.forEach((coord, i) => {
             const cell = document.createElement('div');
             cell.classList.add('cell', 'path');
             cell.style.gridRow = coord.r;
             cell.style.gridColumn = coord.c;
             cell.dataset.pathIndex = i + 1;
-            if (safeSpots.includes(i + 1)) {
-                cell.classList.add('safe');
-            }
+            if (safeSpots.includes(i + 1)) cell.classList.add('safe');
             if (i + 1 === startPositions.red) cell.style.backgroundColor = 'rgba(255, 77, 77, 0.3)';
             if (i + 1 === startPositions.green) cell.style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
             if (i + 1 === startPositions.yellow) cell.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
@@ -83,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             board.appendChild(cell);
         });
 
-        // Home paths
         Object.keys(homePathCoords).forEach(color => {
             homePathCoords[color].forEach((coord, i) => {
                 const cell = document.createElement('div');
@@ -101,19 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
         players.forEach(player => {
             tokens[player] = [];
             const base = document.querySelector(`#${player}-base .home-area`);
-            base.innerHTML = ''; // Clear previous tokens
+            base.innerHTML = '';
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
                 tokenEl.classList.add('token', `${player}-token`);
                 tokenEl.id = `${player}-token-${i}`;
                 
-                const tokenObj = {
-                    id: i,
-                    color: player,
-                    position: -1, // -1 means in base
-                    element: tokenEl,
-                    isHome: false
-                };
+                const tokenObj = { id: i, color: player, position: -1, element: tokenEl, isHome: false };
                 tokens[player].push(tokenObj);
 
                 const yardSpot = document.createElement('div');
@@ -134,6 +131,19 @@ document.addEventListener('DOMContentLoaded', () => {
             diceValue = Math.floor(Math.random() * 6) + 1;
             dice.textContent = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1];
             dice.classList.remove('rolling');
+
+            if (diceValue === 6) {
+                consecutiveSixes++;
+            } else {
+                consecutiveSixes = 0;
+            }
+
+            if (consecutiveSixes === 3) {
+                status.textContent = `${players[currentPlayerIndex]} rolled three 6s! Turn forfeited.`;
+                setTimeout(nextTurn, 1000);
+                return;
+            }
+
             diceRolled = true;
             status.textContent = `${players[currentPlayerIndex]} rolled a ${diceValue}`;
             checkMovableTokens();
@@ -145,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerTokens = tokens[currentPlayer];
         let hasMovableToken = false;
 
+        document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
+
         playerTokens.forEach(token => {
             if (isMovable(token)) {
                 token.element.classList.add('movable');
@@ -152,22 +164,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if (!hasMovableToken) {
+        if (!hasMovableToken && diceRolled) {
             setTimeout(nextTurn, 1000);
         }
     }
     
     function isMovable(token) {
         if (token.isHome) return false;
+        if (token.position === -1) return diceValue === 6;
 
-        if (token.position === -1) { // In base
-            return diceValue === 6;
+        if (token.position > 100) {
+            const homePath = homePaths[token.color];
+            const currentHomeIndex = homePath.indexOf(token.position);
+            return currentHomeIndex + diceValue < homePath.length;
         }
-        
-        // Check if move is within home path
-        const homePathIndex = homePaths[token.color].indexOf(token.position);
-        if (homePathIndex !== -1) {
-            return homePathIndex + diceValue < homePaths[token.color].length;
+
+        const path = playerPaths[token.color];
+        const currentPathIndex = path.indexOf(token.position);
+
+        for (let i = 1; i <= diceValue; i++) {
+            const nextPathIndex = currentPathIndex + i;
+            if (nextPathIndex >= 51) break;
+
+            const posOnPath = path[nextPathIndex];
+            const blockColor = isBlock(posOnPath);
+            if (blockColor && blockColor !== token.color) {
+                return false;
+            }
         }
 
         return true;
@@ -177,48 +200,52 @@ document.addEventListener('DOMContentLoaded', () => {
         if (token.color !== players[currentPlayerIndex] || !diceRolled || !token.element.classList.contains('movable')) {
             return;
         }
-        
         moveToken(token);
     }
 
     function moveToken(token) {
-        // Clear movable highlights
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
 
         if (token.position === -1 && diceValue === 6) {
             token.position = startPositions[token.color];
-        } else {
-            const homeEntrance = homeEntrances[token.color];
-            const currentPathIndex = pathCoords.findIndex(p => p.r === token.element.parentElement.style.gridRow.slice(0,-2) && p.c === token.element.parentElement.style.gridColumn.slice(0,-2)) + 1;
-            
-            const stepsToHomeEntrance = (homeEntrance >= token.position) 
-                ? homeEntrance - token.position 
-                : (52 - token.position) + homeEntrance;
+        } else if (token.position > 0) {
+            if (token.position > 100) {
+                const homePath = homePaths[token.color];
+                const currentHomeIndex = homePath.indexOf(token.position);
+                const newHomeIndex = currentHomeIndex + diceValue;
+                token.position = homePath[newHomeIndex];
+                if (newHomeIndex === homePath.length - 1) {
+                    token.isHome = true;
+                }
+            } else {
+                const path = playerPaths[token.color];
+                const currentPathIndex = path.indexOf(token.position);
+                const newPathIndex = currentPathIndex + diceValue;
 
-            if (token.position > 51) { // Already in home path
-                const homePathIdx = homePaths[token.color].indexOf(token.position);
-                token.position = homePaths[token.color][homePathIdx + diceValue];
-            } else if (diceValue > stepsToHomeEntrance + 1) { // Moving into home path
-                const stepsIntoHome = diceValue - (stepsToHomeEntrance + 1);
-                token.position = homePaths[token.color][stepsIntoHome];
-            } else { // Moving on main path
-                token.position = (token.position + diceValue - 1) % 52 + 1;
+                if (newPathIndex >= 51) {
+                    const homePath = homePaths[token.color];
+                    const stepsIntoHome = newPathIndex - 51;
+                    if (stepsIntoHome < homePath.length) {
+                        token.position = homePath[stepsIntoHome];
+                        if (stepsIntoHome === homePath.length - 1) token.isHome = true;
+                    }
+                } else {
+                    token.position = path[newPathIndex];
+                }
             }
         }
         
-        if (token.position === homePaths[token.color][5]) { // Reached home
-            token.isHome = true;
-        }
-
+        const captureOccurred = checkCapture(token);
         updateBoard();
-        checkCapture(token);
         
-        if (diceValue === 6 || token.isHome) {
+        const winner = checkWin();
+        if (winner) return;
+
+        if (diceValue === 6 || captureOccurred) {
             resetTurn();
         } else {
             nextTurn();
         }
-        checkWin();
     }
     
     function updateBoard() {
@@ -226,58 +253,72 @@ document.addEventListener('DOMContentLoaded', () => {
             tokens[player].forEach(token => {
                 let targetCell;
                 if (token.position === -1) {
-                     targetCell = document.querySelector(`#${player}-token-${token.id}`).parentElement;
-                } else if (token.position > 51) { // Home path
+                    const base = document.querySelector(`#${player}-base .home-area`);
+                    const yardSpots = base.querySelectorAll('.token-yard');
+                    for(let spot of yardSpots) {
+                        if(spot.childElementCount === 0) {
+                            targetCell = spot;
+                            break;
+                        }
+                    }
+                } else if (token.position > 100) {
                     if (token.isHome) {
                         targetCell = document.querySelector(`#home-triangle`);
                     } else {
                         targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
                     }
-                } else { // Main path
+                } else {
                     targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
-                if (targetCell) {
-                   // Handle multiple tokens on one cell
-                    const existingTokens = targetCell.querySelectorAll('.token');
-                    if (existingTokens.length > 0 && !safeSpots.includes(token.position)) {
-                        let offset = existingTokens.length * 5;
-                        token.element.style.transform = `translate(${offset}px, ${offset}px)`;
-                    } else {
-                        token.element.style.transform = 'translate(0,0)';
-                    }
-                    targetCell.appendChild(token.element);
-                }
+                if (targetCell) targetCell.appendChild(token.element);
             });
+        });
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            const tokensInCell = cell.querySelectorAll('.token');
+            if (tokensInCell.length > 1) {
+                tokensInCell.forEach((tokenEl, i) => {
+                    tokenEl.style.transform = `translate(${i * 4}px, ${i * 4}px)`;
+                    tokenEl.style.zIndex = 10 + i;
+                });
+            } else if (tokensInCell.length === 1) {
+                tokensInCell[0].style.transform = 'translate(0,0)';
+                tokensInCell[0].style.zIndex = 10;
+            }
         });
     }
 
     function checkCapture(movedToken) {
-        if (movedToken.position > 51 || safeSpots.includes(movedToken.position)) return;
+        if (movedToken.position > 100 || safeSpots.includes(movedToken.position)) return false;
 
         const targetCell = movedToken.element.parentElement;
+        if (!targetCell) return false;
+
         const tokensInCell = Array.from(targetCell.querySelectorAll('.token'));
+        let captureOccurred = false;
 
         tokensInCell.forEach(tEl => {
+            if (tEl.id === movedToken.element.id) return;
             const t = findTokenByElement(tEl);
             if (t && t.color !== movedToken.color) {
-                t.position = -1; // Send back to base
+                t.position = -1;
+                captureOccurred = true;
             }
         });
-        updateBoard();
+        return captureOccurred;
     }
     
     function findTokenByElement(el) {
         for (const player of players) {
             for (const token of tokens[player]) {
-                if (token.element === el) {
-                    return token;
-                }
+                if (token.element === el) return token;
             }
         }
         return null;
     }
 
     function nextTurn() {
+        consecutiveSixes = 0;
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
         resetTurn();
     }
@@ -293,19 +334,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkWin() {
-        const currentPlayer = players[currentPlayerIndex];
-        const playerTokens = tokens[currentPlayer];
-        if (playerTokens.every(t => t.isHome)) {
-            winnerMessage.textContent = `${currentPlayer} wins!`;
-            winnerMessage.style.color = colors[currentPlayer];
-            restartBtn.style.backgroundColor = colors[currentPlayer];
+        const winner = players.find(p => tokens[p] && tokens[p].every(t => t.isHome));
+        if (winner) {
+            winnerMessage.textContent = `${winner} wins!`;
+            winnerMessage.style.color = colors[winner];
+            restartBtn.style.backgroundColor = colors[winner];
             winnerOverlay.style.display = 'flex';
+            return winner;
         }
+        return null;
     }
     
     function initGame() {
-        board.innerHTML = '';
         winnerOverlay.style.display = 'none';
+
+        players.forEach(player => {
+            const path = [];
+            const start = startPositions[player];
+            for (let i = 0; i < 52; i++) {
+                let pos = start + i;
+                if (pos > 52) pos %= 52;
+                if (pos === 0) pos = 52;
+                path.push(pos);
+            }
+            playerPaths[player] = path;
+        });
+
         createBoard();
         createTokens();
         currentPlayerIndex = 0;
@@ -318,67 +372,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initGame();
 });
-const currentPathIndex = pathCoords.findIndex(p => p.r === token.element.parentElement.style.gridRow.slice(0,-2) && p.c === token.element.parentElement.style.gridColumn.slice(0,-2)) + 1;
-if (existingTokens.length > 0 && !safeSpots.includes(token.position)) {
-    let offset = existingTokens.length * 5;
-    token.element.style.transform = `translate(${offset}px, ${offset}px)`;
-} else {
-    token.element.style.transform = 'translate(0,0)';
-}
-const stepsToHomeEntrance = (homeEntrance >= token.position) 
-    ? homeEntrance - token.position 
-    : (52 - token.position) + homeEntrance;
-// ...
-if (diceValue > stepsToHomeEntrance + 1) {
-    // Move token to home entrance
-    token.position = homeEntrance;
-}
-function moveToken(token) {
-    document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
-
-    // Case 1: Token is in the base, needs a 6 to get out
-    if (token.position === -1 && diceValue === 6) {
-        token.position = startPositions[token.color];
-    
-    // Case 2: Token is already in its final home path
-    } else if (token.position > 51) {
-        const homePath = homePaths[token.color];
-        const currentHomeIndex = homePath.indexOf(token.position);
-        token.position = homePath[currentHomeIndex + diceValue];
-
-    // Case 3: Token is on the main board
-    } else {
-        const homeEntrance = homeEntrances[token.color];
-        // The last square on the main path before the token's home path entrance.
-        const lapEndPosition = (homeEntrance - 1 > 0) ? homeEntrance - 1 : 52; 
-
-        // Check if the move will pass or land on the entrance
-        let newPos = token.position + diceValue;
-
-        // Logic to handle entering the home path
-        if ( (token.position <= lapEndPosition && newPos > lapEndPosition) || 
-             (lapEndPosition < token.position && newPos > 52 && (newPos % 52) > lapEndPosition) ) {
-            
-            const stepsIntoHome = newPos - lapEndPosition - 1;
-            token.position = homePaths[token.color][stepsIntoHome];
-        } else {
-            // Standard move on the circular main path
-            token.position = (token.position + diceValue - 1) % 52 + 1;
-        }
-    }
-    
-    // Check if token reached the final home spot
-    if (token.position === homePaths[token.color][5]) {
-        token.isHome = true;
-    }
-
-    updateBoard();
-    checkCapture(token);
-    
-    if (diceValue === 6 || token.isHome || captureWasMade) { // Assume checkCapture returns true on a capture
-        resetTurn(); // Give player another turn
-    } else {
-        nextTurn();
-    }
-    checkWin();
-}
