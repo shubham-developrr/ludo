@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let tokens = {};
     let consecutiveSixes = 0;
     const playerPaths = {};
-
     const pathCoords = [
         {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6}, {r:6,c:7}, {r:5,c:7}, {r:4,c:7}, {r:3,c:7}, {r:2,c:7}, {r:1,c:7}, {r:1,c:8}, {r:1,c:9},
         {r:2,c:9}, {r:3,c:9}, {r:4,c:9}, {r:5,c:9}, {r:6,c:9}, {r:7,c:10}, {r:7,c:11}, {r:7,c:12}, {r:7,c:13}, {r:7,c:14}, {r:7,c:15}, {r:8,c:15}, {r:9,c:15},
@@ -440,4 +439,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyTheme(savedTheme);
     initGame();
+
 });
