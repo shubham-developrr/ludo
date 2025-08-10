@@ -1,21 +1,8 @@
+/* Base variables and structure */
 :root {
     --board-size: 90vmin;
     --cell-size: calc(var(--board-size) / 15);
     --token-size: calc(var(--cell-size) * 0.75);
-
-    --red: #ff00ff;       /* Magenta */
-    --green: #39ff14;     /* Neon Green */
-    --yellow: #ffff00;    /* Yellow */
-    --blue: #00ffff;      /* Cyan */
-
-    --red-glow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
-    --green-glow: 0 0 5px #39ff14, 0 0 10px #39ff14;
-    --yellow-glow: 0 0 5px #ffff00, 0 0 10px #ffff00;
-    --blue-glow: 0 0 5px #00ffff, 0 0 10px #00ffff;
-
-    --dark-bg: #1a1a1a;
-    --medium-bg: #2a2a2a;
-    --light-gray: #555;
     --cyber-white: #f0f0f0;
 }
 body {
@@ -23,12 +10,143 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: var(--dark-bg);
     font-family: 'Oxanium', sans-serif;
     margin: 0;
     flex-direction: column;
     gap: 20px;
+    transition: background-color 0.5s ease;
+    background-size: cover;
+    background-position: center;
 }
+
+/* THEME DEFINITIONS */
+/* Cyberpunk Theme (Default) */
+body, body.theme-cyberpunk {
+    --red: #ff00ff;
+    --green: #39ff14;
+    --yellow: #ffff00;
+    --blue: #00ffff;
+    --red-glow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+    --green-glow: 0 0 5px #39ff14, 0 0 10px #39ff14;
+    --yellow-glow: 0 0 5px #ffff00, 0 0 10px #ffff00;
+    --blue-glow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+    --dark-bg: #1a1a1a;
+    --medium-bg: #2a2a2a;
+    --light-gray: #555;
+    background-color: var(--dark-bg);
+    /* background-image: url('assets/images/cyberpunk.gif'); */
+}
+/* Ancient Egypt Theme */
+body.theme-egypt {
+    --red: #c0392b;
+    --green: #27ae60;
+    --yellow: #f1c40f;
+    --blue: #2980b9;
+    --red-glow: 0 0 5px #c0392b;
+    --green-glow: 0 0 5px #27ae60;
+    --yellow-glow: 0 0 5px #f1c40f;
+    --blue-glow: 0 0 5px #2980b9;
+    --dark-bg: #4a3c2d;
+    --medium-bg: #d3b88c;
+    --light-gray: #a18f6f;
+    background-color: #f7e7c1; /* Sandy color */
+    /* background-image: url('assets/images/egypt.gif'); */
+}
+/* Jurassic Jungle Theme */
+body.theme-jurassic {
+    --red: #e74c3c;
+    --green: #2ecc71;
+    --yellow: #f1c40f;
+    --blue: #3498db;
+    --red-glow: 0 0 5px #e74c3c;
+    --green-glow: 0 0 5px #2ecc71;
+    --yellow-glow: 0 0 5px #f1c40f;
+    --blue-glow: 0 0 5px #3498db;
+    --dark-bg: #2d4a3c;
+    --medium-bg: #80a18f;
+    --light-gray: #6b8f6f;
+    background-color: #1e3a2a; /* Dark jungle green */
+    /* background-image: url('assets/images/jurassic.gif'); */
+}
+/* Outer Space Theme */
+body.theme-space {
+    --red: #e74c3c;
+    --green: #2ecc71;
+    --yellow: #f1c40f;
+    --blue: #3498db;
+    --red-glow: 0 0 10px #e74c3c;
+    --green-glow: 0 0 10px #2ecc71;
+    --yellow-glow: 0 0 10px #f1c40f;
+    --blue-glow: 0 0 10px #3498db;
+    --dark-bg: #0f0f1f;
+    --medium-bg: #1f1f3f;
+    --light-gray: #4f4f6f;
+    background-color: #000010; /* Deep space blue */
+    /* background-image: url('assets/images/space.gif'); */
+}
+
+/* --- UI Controls --- */
+.ui-controls-top-right {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 200;
+}
+.ui-btn {
+    background: rgba(42, 42, 42, 0.8);
+    border: 1px solid var(--light-gray);
+    color: var(--cyber-white);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.ui-btn:hover {
+    background: var(--medium-bg);
+    border-color: var(--cyber-white);
+}
+.theme-selector {
+    position: relative;
+}
+.theme-menu {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    background: var(--medium-bg);
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    width: 180px;
+}
+.theme-menu.hidden {
+    display: none;
+}
+.theme-option {
+    background: none;
+    border: none;
+    color: var(--cyber-white);
+    padding: 10px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 1em;
+    border-radius: 4px;
+}
+.theme-option:hover {
+    background: var(--light-gray);
+}
+#volume-mute-icon.hidden, #volume-up-icon.hidden {
+    display: none;
+}
+
+/* --- Game Elements --- */
 .game-container {
     display: flex;
     flex-direction: column;
@@ -67,7 +185,6 @@ body {
 #green-base { grid-area: 1 / 10 / span 6 / span 6; border: 2px solid var(--green); box-shadow: var(--green-glow); }
 #yellow-base { grid-area: 10 / 10 / span 6 / span 6; border: 2px solid var(--yellow); box-shadow: var(--yellow-glow); }
 #blue-base { grid-area: 10 / 1 / span 6 / span 6; border: 2px solid var(--blue); box-shadow: var(--blue-glow); }
-
 .home-area {
     background-color: rgba(0,0,0,0.3);
     border-radius: 50%;
@@ -85,6 +202,7 @@ body {
     height: var(--token-size);
     border: 2px solid var(--light-gray);
     border-radius: 50%;
+    position: relative;
 }
 .path { border: 1px solid var(--light-gray); }
 .safe {
@@ -98,15 +216,12 @@ body {
 .green-path { background-color: var(--green); }
 .yellow-path { background-color: var(--yellow); }
 .blue-path { background-color: var(--blue); }
-
 #home-triangle {
     grid-area: 7 / 7 / span 3 / span 3;
     position: relative;
     background: radial-gradient(circle, var(--medium-bg) 0%, var(--dark-bg) 100%);
     border-radius: 8px;
 }
-#home-triangle::before, #home-triangle::after, #home-triangle > div:nth-child(1), #home-triangle > div:nth-child(2) { display: none; } /* Hide old triangles */
-
 .token {
     position: absolute;
     width: var(--token-size);
@@ -127,7 +242,6 @@ body {
 .green-token { background-color: var(--green); color: var(--green); }
 .yellow-token { background-color: var(--yellow); color: var(--yellow); }
 .blue-token { background-color: var(--blue); color: var(--blue); }
-
 .token.movable {
     animation: pulse 1s infinite;
     box-shadow: 0 0 15px 5px var(--cyber-white);

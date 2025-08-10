@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let tokens = {};
     let consecutiveSixes = 0;
     const playerPaths = {};
-
     const pathCoords = [
         {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6}, {r:6,c:7}, {r:5,c:7}, {r:4,c:7}, {r:3,c:7}, {r:2,c:7}, {r:1,c:7}, {r:1,c:8}, {r:1,c:9},
         {r:2,c:9}, {r:3,c:9}, {r:4,c:9}, {r:5,c:9}, {r:6,c:9}, {r:7,c:10}, {r:7,c:11}, {r:7,c:12}, {r:7,c:13}, {r:7,c:14}, {r:7,c:15}, {r:8,c:15}, {r:9,c:15},
@@ -209,15 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (token.position === -1 && diceValue === 6) {
             token.position = startPositions[token.color];
         } else if (token.position > 0) {
-            if (token.position > 100) {
+            if (token.position > 100) { // In home path
                 const homePath = homePaths[token.color];
                 const currentHomeIndex = homePath.indexOf(token.position);
                 const newHomeIndex = currentHomeIndex + diceValue;
-                token.position = homePath[newHomeIndex];
-                if (newHomeIndex === homePath.length - 1) {
-                    token.isHome = true;
+                if (newHomeIndex < homePath.length) {
+                    token.position = homePath[newHomeIndex];
+                    if (newHomeIndex === homePath.length - 1) {
+                        token.isHome = true;
+                    }
                 }
-            } else {
+            } else { // On main path
                 const path = playerPaths[token.color];
                 const currentPathIndex = path.indexOf(token.position);
                 const newPathIndex = currentPathIndex + diceValue;
@@ -370,5 +371,73 @@ document.addEventListener('DOMContentLoaded', () => {
     dice.addEventListener('click', rollDice);
     restartBtn.addEventListener('click', initGame);
 
+    // --- Theming Logic ---
+    const themeBtn = document.getElementById('theme-btn');
+    const themeMenu = document.getElementById('theme-menu');
+    const themeOptions = document.querySelectorAll('.theme-option');
+
+    themeBtn.addEventListener('click', () => {
+        themeMenu.classList.toggle('hidden');
+    });
+
+    themeOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const selectedTheme = option.dataset.theme;
+            applyTheme(selectedTheme);
+            themeMenu.classList.add('hidden');
+        });
+    });
+
+    // Load saved theme on startup
+    const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
+
+
+    // --- Music & Sound Logic ---
+    const music = document.getElementById('background-music');
+    const muteBtn = document.getElementById('mute-btn');
+    const volumeUpIcon = document.getElementById('volume-up-icon');
+    const volumeMuteIcon = document.getElementById('volume-mute-icon');
+    const musicMap = {
+        cyberpunk: 'assets/audio/cyberpunk.mp3', // Placeholder
+        egypt: 'assets/audio/egypt.mp3',       // Placeholder
+        jurassic: 'assets/audio/jurassic.mp3',   // Placeholder
+        space: 'assets/audio/space.mp3'          // Placeholder
+    };
+
+    function toggleMute() {
+        music.muted = !music.muted;
+        localStorage.setItem('ludoMuted', music.muted);
+        updateMuteButton();
+    }
+
+    function updateMuteButton() {
+        if (music.muted) {
+            volumeUpIcon.classList.add('hidden');
+            volumeMuteIcon.classList.remove('hidden');
+        } else {
+            volumeUpIcon.classList.remove('hidden');
+            volumeMuteIcon.classList.add('hidden');
+        }
+    }
+
+    muteBtn.addEventListener('click', toggleMute);
+
+    function applyTheme(theme) {
+        document.body.className = '';
+        document.body.classList.add(`theme-${theme}`);
+        localStorage.setItem('ludoTheme', theme);
+
+        // Update music source and play
+        music.src = musicMap[theme];
+        music.play().catch(e => console.log("Audio play failed, user interaction needed."));
+    }
+
+    // Load saved mute state
+    const savedMuted = localStorage.getItem('ludoMuted') === 'true';
+    music.muted = savedMuted;
+    updateMuteButton();
+
+    applyTheme(savedTheme);
     initGame();
+
 });
