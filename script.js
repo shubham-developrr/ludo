@@ -236,9 +236,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        const captureOccurred = checkCapture(token);
+        // Update the board to move the token visually to its new cell
         updateBoard();
+
+        // Now that the token is in its new cell, check for captures
+        const captureOccurred = checkCapture(token);
         
+        // If a capture happened, the board needs to be updated again to show the captured piece returning to base
+        if (captureOccurred) {
+            updateBoard();
+        }
+
         const winner = checkWin();
         if (winner) return;
 
