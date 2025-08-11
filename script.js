@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const captureOccurred = checkCapture(token);
         
         // If a capture happened, the board needs to be updated again to show the captured piece returning to base
-        if(captureOccurred) {
+        if (captureOccurred) {
             updateBoard();
         }
 
