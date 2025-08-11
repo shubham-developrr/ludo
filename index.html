@@ -13,12 +13,64 @@
 <body>
     <div id="lobby-container">
         <div class="lobby-box">
-            <h2>Ludo Multiplayer</h2>
-            <button id="create-game-btn" class="lobby-btn">Create Game</button>
-            <div class="join-game-section">
-                <input type="text" id="room-code-input" placeholder="Enter Room Code" maxlength="5" autocapitalize="characters">
-                <button id="join-game-btn" class="lobby-btn">Join Game</button>
+            <h2>Ludo Game</h2>
+            <div class="mode-selection">
+                <button id="online-mode-btn" class="mode-btn active">Online Multiplayer</button>
+                <button id="local-mode-btn" class="mode-btn">Local Game</button>
             </div>
+            
+            <div id="online-mode" class="game-mode">
+                <button id="create-game-btn" class="lobby-btn">Create Game</button>
+                <div class="join-game-section">
+                    <input type="text" id="room-code-input" placeholder="Enter Room Code" maxlength="5" autocapitalize="characters">
+                    <button id="join-game-btn" class="lobby-btn">Join Game</button>
+                </div>
+            </div>
+            
+            <div id="local-mode" class="game-mode" style="display: none;">
+                <div class="local-game-setup">
+                    <label for="player-count">Number of Players:</label>
+                    <select id="player-count">
+                        <option value="2">2 Players</option>
+                        <option value="3">3 Players</option>
+                        <option value="4">4 Players</option>
+                    </select>
+                    
+                    <div id="player-type-selection">
+                        <div class="player-config">
+                            <span class="player-color red">Red:</span>
+                            <select class="player-type" data-color="red">
+                                <option value="human">Human</option>
+                                <option value="ai">AI</option>
+                            </select>
+                        </div>
+                        <div class="player-config">
+                            <span class="player-color yellow">Yellow:</span>
+                            <select class="player-type" data-color="yellow">
+                                <option value="human">Human</option>
+                                <option value="ai">AI</option>
+                            </select>
+                        </div>
+                        <div class="player-config" style="display: none;">
+                            <span class="player-color green">Green:</span>
+                            <select class="player-type" data-color="green">
+                                <option value="human">Human</option>
+                                <option value="ai">AI</option>
+                            </select>
+                        </div>
+                        <div class="player-config" style="display: none;">
+                            <span class="player-color blue">Blue:</span>
+                            <select class="player-type" data-color="blue">
+                                <option value="human">Human</option>
+                                <option value="ai">AI</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button id="start-local-game-btn" class="lobby-btn">Start Local Game</button>
+                </div>
+            </div>
+            
             <p id="lobby-error" class="error-message"></p>
              <div id="room-info" style="display: none;">
                 <p>Room Code: <strong id="room-code-display"></strong></p>
@@ -49,6 +101,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="local-game.js"></script>
     <script src="script.js"></script>
 
     <div class="ui-controls-top-right">

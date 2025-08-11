@@ -27,6 +27,97 @@
     text-shadow: 0 0 10px var(--blue);
 }
 
+/* Mode Selection */
+.mode-selection {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+.mode-btn {
+    padding: 12px 24px;
+    border: 2px solid var(--light-gray);
+    background: transparent;
+    color: var(--cyber-white);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 1em;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover, .mode-btn.active {
+    border-color: var(--blue);
+    box-shadow: 0 0 10px var(--blue);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+/* Local Game Setup */
+.local-game-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.local-game-setup label {
+    color: var(--cyber-white);
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.local-game-setup select {
+    padding: 10px;
+    border: 2px solid var(--light-gray);
+    background: var(--medium-bg);
+    color: var(--cyber-white);
+    border-radius: 8px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 1em;
+    min-width: 150px;
+}
+
+.local-game-setup select:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 5px var(--blue);
+}
+
+#player-type-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.player-config {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.player-color {
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 80px;
+    text-align: left;
+}
+
+.player-color.red { color: var(--red); }
+.player-color.yellow { color: var(--yellow); }
+.player-color.green { color: var(--green); }
+.player-color.blue { color: var(--blue); }
+
+.player-type {
+    min-width: 100px;
+}
+
 .lobby-btn {
     width: 100%;
     padding: 15px;

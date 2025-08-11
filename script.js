@@ -12,6 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerList = document.getElementById('player-list');
     const startGameBtn = document.getElementById('start-game-btn');
 
+    // Local game elements
+    const onlineModeBtn = document.getElementById('online-mode-btn');
+    const localModeBtn = document.getElementById('local-mode-btn');
+    const onlineMode = document.getElementById('online-mode');
+    const localMode = document.getElementById('local-mode');
+    const playerCountSelect = document.getElementById('player-count');
+    const playerTypeSelects = document.querySelectorAll('.player-type');
+    const playerConfigs = document.querySelectorAll('.player-config');
+    const startLocalGameBtn = document.getElementById('start-local-game-btn');
+
     const gameContainer = document.querySelector('.game-container');
     const board = document.getElementById('ludo-board');
     const dice = document.getElementById('dice');
@@ -23,16 +33,89 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Client State ---
     let myPlayerInfo = null;
     let currentHostId = null;
+    let localGame = null;
+    let isLocalMode = false;
 
     // ################# LOBBY LOGIC #################
 
+    // Mode switching
+    function switchToOnlineMode() {
+        onlineModeBtn.classList.add('active');
+        localModeBtn.classList.remove('active');
+        onlineMode.style.display = 'block';
+        localMode.style.display = 'none';
+        isLocalMode = false;
+    }
+
+    function switchToLocalMode() {
+        localModeBtn.classList.add('active');
+        onlineModeBtn.classList.remove('active');
+        localMode.style.display = 'block';
+        onlineMode.style.display = 'none';
+        isLocalMode = true;
+    }
+
+    // Player count change handler
+    function updatePlayerConfigs() {
+        const playerCount = parseInt(playerCountSelect.value);
+        const colors = ['red', 'yellow', 'green', 'blue'];
+        
+        playerConfigs.forEach((config, index) => {
+            if (index < playerCount) {
+                config.style.display = 'flex';
+            } else {
+                config.style.display = 'none';
+            }
+        });
+    }
+
     function setupLobbyListeners() {
+        // Mode switching
+        onlineModeBtn.addEventListener('click', switchToOnlineMode);
+        localModeBtn.addEventListener('click', switchToLocalMode);
+        
+        // Online mode
         createGameBtn.addEventListener('click', () => socket.emit('createGame'));
         joinGameBtn.addEventListener('click', () => {
             const code = roomCodeInput.value.trim();
             if (code) socket.emit('joinGame', code);
         });
         startGameBtn.addEventListener('click', () => socket.emit('startGame'));
+        
+        // Local mode
+        playerCountSelect.addEventListener('change', updatePlayerConfigs);
+        startLocalGameBtn.addEventListener('click', startLocalGame);
+        
+        // Initialize player configs
+        updatePlayerConfigs();
+    }
+
+    function startLocalGame() {
+        const playerCount = parseInt(playerCountSelect.value);
+        const colors = ['red', 'yellow', 'green', 'blue'];
+        const players = [];
+        
+        for (let i = 0; i < playerCount; i++) {
+            const color = colors[i];
+            const typeSelect = document.querySelector(`[data-color="${color}"]`);
+            players.push({
+                color: color,
+                type: typeSelect.value
+            });
+        }
+        
+        localGame = new LocalGame(players, () => {
+            if (localGame) render(localGame.getState());
+        });
+        
+        // Hide lobby and show game
+        lobbyContainer.style.display = 'none';
+        gameContainer.style.display = 'flex';
+        createBoard();
+        createTokenElements(players);
+        
+        // Render initial state
+        render(localGame.getState());
     }
 
     socket.on('gameCreated', ({ roomCode, player, hostId }) => {
@@ -160,6 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
             tokenElements[color] = [];
             const base = document.querySelector(`#${color}-base .home-area`);
             base.innerHTML = '';
+            
+            // Create 4 fixed yard spots first
+            for (let i = 0; i < 4; i++) {
+                const yardSpot = document.createElement('div');
+                yardSpot.classList.add('token-yard');
+                yardSpot.id = `${color}-yard-${i}`;
+                base.appendChild(yardSpot);
+            }
+            
+            // Then create tokens
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
                 tokenEl.classList.add('token', `${color}-token`);
@@ -167,27 +260,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tokenEl.addEventListener('click', () => {
                     if (tokenEl.classList.contains('movable')) {
-                        socket.emit('moveToken', { color: color, tokenId: i });
+                        if (isLocalMode && localGame) {
+                            localGame.moveToken(color, i);
+                        } else {
+                            socket.emit('moveToken', { color: color, tokenId: i });
+                        }
                     }
                 });
 
                 tokenElements[color].push(tokenEl);
                 
-                const yardSpot = document.createElement('div');
-                yardSpot.classList.add('token-yard');
-                base.appendChild(yardSpot);
+                // Place token in its designated yard spot
+                const yardSpot = document.getElementById(`${color}-yard-${i}`);
+                yardSpot.appendChild(tokenEl);
             }
         });
     }
     
     function render(gameState) {
         clientGameState = gameState;
-        const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt } = gameState;
+        const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
 
         if (turnTimerInterval) clearInterval(turnTimerInterval);
         turnTimerInterval = setInterval(() => {
             const timeLeft = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
-            status.textContent = `${currentPlayerColor}'s turn (${timeLeft}s)`;
+            let statusText = `${currentPlayerColor}'s turn (${timeLeft}s)`;
+            if (isLocalGame && currentPlayerType === 'ai') {
+                statusText = `${currentPlayerColor} (AI) - ${timeLeft}s`;
+            }
+            status.textContent = statusText;
         }, 500);
 
         Object.keys(tokenElements).forEach(color => {
@@ -199,14 +300,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tokenEl = tokenElements[color][token.id];
                 let targetCell;
                 if (token.position === -1) { // In base
-                    const base = document.querySelector(`#${color}-base .home-area`);
-                    const yardSpots = base.querySelectorAll('.token-yard');
-                    targetCell = Array.from(yardSpots).find(s => !s.hasChildNodes() || !Array.from(s.childNodes).some(cn => cn.id === tokenEl.id));
-                } else if (token.position === -2) { // Disconnected
-                    tokenEl.style.display = 'none';
-                    return;
-                } else if (token.isHome) {
-                    targetCell = document.querySelector(`#home-triangle`);
+                    targetCell = document.getElementById(`${color}-yard-${token.id}`);
+                } else if (token.position === -2) { // At home or disconnected
+                    if (token.isHome) {
+                        targetCell = document.querySelector(`#home-triangle`);
+                    } else {
+                        tokenEl.style.display = 'none';
+                        return;
+                    }
                 } else if (token.position > 100) { // Home path
                     targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
                 } else { // Main path
@@ -215,14 +316,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (targetCell && tokenEl.parentElement !== targetCell) {
                     targetCell.appendChild(tokenEl);
                 }
+                tokenEl.style.display = 'flex'; // Ensure token is visible
             });
         });
 
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
-        if (movableTokens && currentPlayerColor === myPlayerInfo.color) {
-            movableTokens.forEach(t => {
-                tokenElements[t.color][t.id].classList.add('movable');
+        document.querySelectorAll('.current-player').forEach(el => el.classList.remove('current-player'));
+        
+        // Add current-player class to current player's tokens for better layering on safe spots
+        if (tokenElements[currentPlayerColor]) {
+            tokenElements[currentPlayerColor].forEach(tokenEl => {
+                tokenEl.classList.add('current-player');
             });
+        }
+        
+        if (movableTokens && (!isLocalGame || currentPlayerType === 'human')) {
+            if (!isLocalGame && currentPlayerColor === myPlayerInfo.color) {
+                movableTokens.forEach(t => {
+                    tokenElements[t.color][t.id].classList.add('movable');
+                });
+            } else if (isLocalGame && currentPlayerType === 'human') {
+                movableTokens.forEach(t => {
+                    tokenElements[t.color][t.id].classList.add('movable');
+                });
+            }
         }
         
         dice.textContent = diceValue ? ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1] : '🎲';
@@ -240,7 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupGameListeners() {
         dice.addEventListener('click', () => {
-            if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
+            if (isLocalMode && localGame) {
+                const gameState = localGame.getState();
+                if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
+                    localGame.rollDice();
+                }
+            } else if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
                 socket.emit('rollDice');
             }
         });
@@ -307,10 +429,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeUpIcon = document.getElementById('volume-up-icon');
     const volumeMuteIcon = document.getElementById('volume-mute-icon');
     const musicMap = {
-        cyberpunk: 'audio/cyberpunk.mp3',
-        egypt: 'audio/egypt.mp3',
-        jurassic: 'audio/jurassic.mp3',
-        space: 'audio/space.mp3'
+        cyberpunk: 'assets/audio/cyberpunk.mp3',
+        egypt: 'assets/audio/egypt.mp3',
+        jurassic: 'assets/audio/jurassic.mp3',
+        space: 'assets/audio/space.mp3'
     };
     function toggleMute() {
         music.muted = !music.muted;

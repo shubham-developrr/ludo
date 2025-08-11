@@ -34,7 +34,7 @@ body, body.theme-cyberpunk {
     --medium-bg: #2a2a2a;
     --light-gray: #555;
     background-color: var(--dark-bg);
-    /* background-image: url('assets/images/cyberpunk.gif'); */
+    background-image: url('assets/images/cyberpunk.gif');
 }
 /* Ancient Egypt Theme */
 body.theme-egypt {
@@ -50,7 +50,7 @@ body.theme-egypt {
     --medium-bg: #d3b88c;
     --light-gray: #a18f6f;
     background-color: #f7e7c1; /* Sandy color */
-    /* background-image: url('assets/images/egypt.gif'); */
+    background-image: url('assets/images/egypt.gif');
 }
 /* Jurassic Jungle Theme */
 body.theme-jurassic {
@@ -66,7 +66,7 @@ body.theme-jurassic {
     --medium-bg: #80a18f;
     --light-gray: #6b8f6f;
     background-color: #1e3a2a; /* Dark jungle green */
-    /* background-image: url('assets/images/jurassic.gif'); */
+    background-image: url('assets/images/jurassic.gif');
 }
 /* Outer Space Theme */
 body.theme-space {
@@ -82,7 +82,7 @@ body.theme-space {
     --medium-bg: #1f1f3f;
     --light-gray: #4f4f6f;
     background-color: #000010; /* Deep space blue */
-    /* background-image: url('assets/images/space.gif'); */
+    background-image: url('assets/images/space.gif');
 }
 
 /* --- UI Controls --- */
@@ -203,6 +203,9 @@ body.theme-space {
     border: 2px solid var(--light-gray);
     border-radius: 50%;
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .path { border: 1px solid var(--light-gray); }
 .safe {
@@ -216,6 +219,12 @@ body.theme-space {
 .green-path { background-color: var(--green); }
 .yellow-path { background-color: var(--yellow); }
 .blue-path { background-color: var(--blue); }
+
+/* Final home positions - black color */
+[data-home-path-index="106"] { background-color: #000000 !important; }
+[data-home-path-index="206"] { background-color: #000000 !important; }
+[data-home-path-index="306"] { background-color: #000000 !important; }
+[data-home-path-index="406"] { background-color: #000000 !important; }
 #home-triangle {
     grid-area: 7 / 7 / span 3 / span 3;
     position: relative;
@@ -237,19 +246,29 @@ body.theme-space {
     z-index: 10;
     transition: all 0.3s ease-in-out;
     cursor: pointer;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 .red-token { background-color: var(--red); color: var(--red); }
 .green-token { background-color: var(--green); color: var(--green); }
 .yellow-token { background-color: var(--yellow); color: var(--yellow); }
 .blue-token { background-color: var(--blue); color: var(--blue); }
+
+/* Current player's tokens appear above others on safe spots */
+.token.current-player {
+    z-index: 20;
+}
+
 .token.movable {
     animation: pulse 1s infinite;
     box-shadow: 0 0 15px 5px var(--cyber-white);
+    z-index: 25; /* Movable tokens appear above all others */
 }
 @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); }
 }
 .controls {
     display: flex;
