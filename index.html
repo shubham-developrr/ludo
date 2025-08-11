@@ -8,13 +8,37 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lobby.css">
 </head>
 <body>
-    <div class="game-container">
+    <div id="lobby-container">
+        <div class="lobby-box">
+            <h2>Ludo Multiplayer</h2>
+            <button id="create-game-btn" class="lobby-btn">Create Game</button>
+            <div class="join-game-section">
+                <input type="text" id="room-code-input" placeholder="Enter Room Code" maxlength="5" autocapitalize="characters">
+                <button id="join-game-btn" class="lobby-btn">Join Game</button>
+            </div>
+            <p id="lobby-error" class="error-message"></p>
+             <div id="room-info" style="display: none;">
+                <p>Room Code: <strong id="room-code-display"></strong></p>
+                <div id="player-list"></div>
+                <button id="start-game-btn" class="lobby-btn" disabled>Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container" style="display: none;">
         <div id="ludo-board"></div>
         <div class="controls">
             <div id="dice">🎲</div>
             <div id="game-status">Red's turn</div>
+        </div>
+        <div id="chat-container">
+            <ul id="chat-messages"></ul>
+            <form id="chat-form" action="">
+                <input id="chat-input" autocomplete="off" /><button>Send</button>
+            </form>
         </div>
     </div>
     <div id="winner-overlay" class="winner-overlay">
@@ -23,6 +47,8 @@
             <button id="restart-btn">Play Again</button>
         </div>
     </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 
     <div class="ui-controls-top-right">

@@ -1,67 +1,126 @@
-// script.js extracted from hello.html
-
 document.addEventListener('DOMContentLoaded', () => {
+    const socket = io();
+
+    // --- DOM Elements ---
+    const lobbyContainer = document.getElementById('lobby-container');
+    const createGameBtn = document.getElementById('create-game-btn');
+    const joinGameBtn = document.getElementById('join-game-btn');
+    const roomCodeInput = document.getElementById('room-code-input');
+    const lobbyError = document.getElementById('lobby-error');
+    const roomInfo = document.getElementById('room-info');
+    const roomCodeDisplay = document.getElementById('room-code-display');
+    const playerList = document.getElementById('player-list');
+    const startGameBtn = document.getElementById('start-game-btn');
+
+    const gameContainer = document.querySelector('.game-container');
     const board = document.getElementById('ludo-board');
     const dice = document.getElementById('dice');
     const status = document.getElementById('game-status');
     const winnerOverlay = document.getElementById('winner-overlay');
     const winnerMessage = document.getElementById('winner-message');
     const restartBtn = document.getElementById('restart-btn');
-   
 
-    const players = ['red', 'green', 'yellow', 'blue'];
-    const colors = { red: '#ff4d4d', green: '#4caf50', yellow: '#ffeb3b', blue: '#2196f3' };
-    const startPositions = { red: 1, green: 14, yellow: 27, blue: 40 };
-    const lapEndPositions = { red: 51, green: 12, yellow: 25, blue: 38 };
+    // --- Client State ---
+    let myPlayerInfo = null;
+    let currentHostId = null;
+
+    // ################# LOBBY LOGIC #################
+
+    function setupLobbyListeners() {
+        createGameBtn.addEventListener('click', () => socket.emit('createGame'));
+        joinGameBtn.addEventListener('click', () => {
+            const code = roomCodeInput.value.trim();
+            if (code) socket.emit('joinGame', code);
+        });
+        startGameBtn.addEventListener('click', () => socket.emit('startGame'));
+    }
+
+    socket.on('gameCreated', ({ roomCode, player, hostId }) => {
+        myPlayerInfo = player;
+        currentHostId = hostId;
+        lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
+        createGameBtn.style.display = 'none';
+        roomInfo.style.display = 'block';
+        roomCodeDisplay.textContent = roomCode;
+    });
+
+    socket.on('gameJoined', ({ roomCode, player, hostId }) => {
+        myPlayerInfo = player;
+        currentHostId = hostId;
+        lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
+        createGameBtn.style.display = 'none';
+        roomInfo.style.display = 'block';
+        roomCodeDisplay.textContent = roomCode;
+    });
+
+    socket.on('playerListUpdate', (players) => {
+        playerList.innerHTML = '';
+        players.forEach(p => {
+            const playerEl = document.createElement('div');
+            playerEl.classList.add('player-list-item');
+            playerEl.innerHTML = `
+                <span class="player-color-dot" style="background-color: ${p.color};"></span>
+                <span class="player-name">Player (${p.color})${p.id === myPlayerInfo.id ? ' (You)' : ''}</span>
+            `;
+            if (myPlayerInfo.id === currentHostId && p.id !== myPlayerInfo.id) {
+                const kickBtn = document.createElement('button');
+                kickBtn.className = 'kick-btn';
+                kickBtn.innerHTML = '&times;';
+                kickBtn.onclick = () => socket.emit('kickPlayer', p.id);
+                playerEl.appendChild(kickBtn);
+            }
+            playerList.appendChild(playerEl);
+        });
+
+        if (myPlayerInfo.id === currentHostId) {
+            startGameBtn.style.display = 'block';
+            startGameBtn.disabled = players.length < 2;
+        } else {
+            startGameBtn.style.display = 'none';
+        }
+    });
+
+    socket.on('hostUpdate', (newHostId) => {
+        currentHostId = newHostId;
+    });
+
+    socket.on('kicked', () => {
+        alert('You have been kicked from the room.');
+        window.location.reload();
+    });
+
+    socket.on('lobbyError', (message) => {
+        lobbyError.textContent = message;
+        setTimeout(() => { lobbyError.textContent = ''; }, 3000);
+    });
+
+
+    // ################# GAME LOGIC #################
+
+    const staticColors = { red: '#ff4d4d', green: '#4caf50', yellow: '#ffeb3b', blue: '#2196f3' };
     const homePaths = {
         red: [101, 102, 103, 104, 105, 106],
         green: [201, 202, 203, 204, 205, 206],
         yellow: [301, 302, 303, 304, 305, 306],
         blue: [401, 402, 403, 404, 405, 406]
     };
-
-    let currentPlayerIndex = 0;
-    let diceValue = 0;
-    let diceRolled = false;
-    let tokens = {};
-    let consecutiveSixes = 0;
-    const playerPaths = {};
-    const pathCoords = [
+     const pathCoords = [
         {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6}, {r:6,c:7}, {r:5,c:7}, {r:4,c:7}, {r:3,c:7}, {r:2,c:7}, {r:1,c:7}, {r:1,c:8}, {r:1,c:9},
         {r:2,c:9}, {r:3,c:9}, {r:4,c:9}, {r:5,c:9}, {r:6,c:9}, {r:7,c:10}, {r:7,c:11}, {r:7,c:12}, {r:7,c:13}, {r:7,c:14}, {r:7,c:15}, {r:8,c:15}, {r:9,c:15},
         {r:9,c:14}, {r:9,c:13}, {r:9,c:12}, {r:9,c:11}, {r:9,c:10}, {r:10,c:9}, {r:11,c:9}, {r:12,c:9}, {r:13,c:9}, {r:14,c:9}, {r:15,c:9}, {r:15,c:8}, {r:15,c:7},
         {r:14,c:7}, {r:13,c:7}, {r:12,c:7}, {r:11,c:7}, {r:10,c:7}, {r:9,c:6}, {r:9,c:5}, {r:9,c:4}, {r:9,c:3}, {r:9,c:2}, {r:9,c:1}, {r:8,c:1}, {r:7,c:1},
     ];
-
     const homePathCoords = {
         red: [{r:8,c:2}, {r:8,c:3}, {r:8,c:4}, {r:8,c:5}, {r:8,c:6}, {r:8,c:7}],
         green: [{r:2,c:8}, {r:3,c:8}, {r:4,c:8}, {r:5,c:8}, {r:6,c:8}, {r:7,c:8}],
         yellow: [{r:8,c:14}, {r:8,c:13}, {r:8,c:12}, {r:8,c:11}, {r:8,c:10}, {r:8,c:9}],
         blue: [{r:14,c:8}, {r:13,c:8}, {r:12,c:8}, {r:11,c:8}, {r:10,c:8}, {r:9,c:8}]
     };
-
     const safeSpots = [1, 9, 14, 22, 27, 35, 40, 48];
 
-    function isBlock(position) {
-        if (position < 1 || position > 52 || safeSpots.includes(position)) {
-            return null;
-        }
-        const tokensAtPosition = [];
-        for (const player of players) {
-            for (const token of tokens[player]) {
-                if (token.position === position) {
-                    tokensAtPosition.push(token);
-                }
-            }
-        }
-        if (tokensAtPosition.length >= 2) {
-            const firstColor = tokensAtPosition[0].color;
-            if (tokensAtPosition.every(t => t.color === firstColor)) {
-                return firstColor;
-            }
-        }
-        return null;
-    }
+    let clientGameState = {};
+    let tokenElements = {};
+    let turnTimerInterval = null;
 
     function createBoard() {
         board.innerHTML = `
@@ -79,10 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.style.gridColumn = coord.c;
             cell.dataset.pathIndex = i + 1;
             if (safeSpots.includes(i + 1)) cell.classList.add('safe');
-            if (i + 1 === startPositions.red) cell.style.backgroundColor = 'rgba(255, 77, 77, 0.3)';
-            if (i + 1 === startPositions.green) cell.style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
-            if (i + 1 === startPositions.yellow) cell.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
-            if (i + 1 === startPositions.blue) cell.style.backgroundColor = 'rgba(33, 150, 243, 0.3)';
             board.appendChild(cell);
         });
 
@@ -98,318 +153,170 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function createTokens() {
-        tokens = {};
+    function createTokenElements(players) {
+        tokenElements = {};
         players.forEach(player => {
-            tokens[player] = [];
-            const base = document.querySelector(`#${player}-base .home-area`);
+            const color = player.color;
+            tokenElements[color] = [];
+            const base = document.querySelector(`#${color}-base .home-area`);
             base.innerHTML = '';
             for (let i = 0; i < 4; i++) {
                 const tokenEl = document.createElement('div');
-                tokenEl.classList.add('token', `${player}-token`);
-                tokenEl.id = `${player}-token-${i}`;
-                
-                const tokenObj = { id: i, color: player, position: -1, element: tokenEl, isHome: false };
-                tokens[player].push(tokenObj);
+                tokenEl.classList.add('token', `${color}-token`);
+                tokenEl.id = `${color}-token-${i}`;
 
+                tokenEl.addEventListener('click', () => {
+                    if (tokenEl.classList.contains('movable')) {
+                        socket.emit('moveToken', { color: color, tokenId: i });
+                    }
+                });
+
+                tokenElements[color].push(tokenEl);
+                
                 const yardSpot = document.createElement('div');
                 yardSpot.classList.add('token-yard');
-                yardSpot.appendChild(tokenEl);
                 base.appendChild(yardSpot);
-                
-                tokenEl.addEventListener('click', () => onTokenClick(tokenObj));
             }
         });
     }
+    
+    function render(gameState) {
+        clientGameState = gameState;
+        const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt } = gameState;
 
-    function rollDice() {
-        if (diceRolled) return;
-        dice.classList.add('rolling');
-        
-        setTimeout(() => {
-            diceValue = Math.floor(Math.random() * 6) + 1;
-            dice.textContent = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1];
-            dice.classList.remove('rolling');
-
-            if (diceValue === 6) {
-                consecutiveSixes++;
-            } else {
-                consecutiveSixes = 0;
-            }
-
-            if (consecutiveSixes === 3) {
-                status.textContent = `${players[currentPlayerIndex]} rolled three 6s! Turn forfeited.`;
-                setTimeout(nextTurn, 1000);
-                return;
-            }
-
-            diceRolled = true;
-            status.textContent = `${players[currentPlayerIndex]} rolled a ${diceValue}`;
-            checkMovableTokens();
+        if (turnTimerInterval) clearInterval(turnTimerInterval);
+        turnTimerInterval = setInterval(() => {
+            const timeLeft = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+            status.textContent = `${currentPlayerColor}'s turn (${timeLeft}s)`;
         }, 500);
-    }
 
-    function checkMovableTokens() {
-        const currentPlayer = players[currentPlayerIndex];
-        const playerTokens = tokens[currentPlayer];
-        let hasMovableToken = false;
-
-        document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
-
-        playerTokens.forEach(token => {
-            if (isMovable(token)) {
-                token.element.classList.add('movable');
-                hasMovableToken = true;
+        Object.keys(tokenElements).forEach(color => {
+            if (!players[color]) { // Player might have disconnected
+                 tokenElements[color].forEach(el => el.style.display = 'none');
+                 return;
             }
-        });
-
-        if (!hasMovableToken && diceRolled) {
-            setTimeout(nextTurn, 1000);
-        }
-    }
-    
-    function isMovable(token) {
-        if (token.isHome) return false;
-        if (token.position === -1) return diceValue === 6;
-
-        if (token.position > 100) {
-            const homePath = homePaths[token.color];
-            const currentHomeIndex = homePath.indexOf(token.position);
-            return currentHomeIndex + diceValue < homePath.length;
-        }
-
-        const path = playerPaths[token.color];
-        const currentPathIndex = path.indexOf(token.position);
-
-        for (let i = 1; i <= diceValue; i++) {
-            const nextPathIndex = currentPathIndex + i;
-            if (nextPathIndex >= 51) break;
-
-            const posOnPath = path[nextPathIndex];
-            const blockColor = isBlock(posOnPath);
-            if (blockColor && blockColor !== token.color) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    function onTokenClick(token) {
-        if (token.color !== players[currentPlayerIndex] || !diceRolled || !token.element.classList.contains('movable')) {
-            return;
-        }
-        moveToken(token);
-    }
-
-    function moveToken(token) {
-        document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
-
-        if (token.position === -1 && diceValue === 6) {
-            token.position = startPositions[token.color];
-        } else if (token.position > 0) {
-            if (token.position > 100) { // In home path
-                const homePath = homePaths[token.color];
-                const currentHomeIndex = homePath.indexOf(token.position);
-                const newHomeIndex = currentHomeIndex + diceValue;
-                if (newHomeIndex < homePath.length) {
-                    token.position = homePath[newHomeIndex];
-                    if (newHomeIndex === homePath.length - 1) {
-                        token.isHome = true;
-                    }
-                }
-            } else { // On main path
-                const path = playerPaths[token.color];
-                const currentPathIndex = path.indexOf(token.position);
-                const newPathIndex = currentPathIndex + diceValue;
-
-                if (newPathIndex >= 51) {
-                    const homePath = homePaths[token.color];
-                    const stepsIntoHome = newPathIndex - 51;
-                    if (stepsIntoHome < homePath.length) {
-                        token.position = homePath[stepsIntoHome];
-                        if (stepsIntoHome === homePath.length - 1) token.isHome = true;
-                    }
-                } else {
-                    token.position = path[newPathIndex];
-                }
-            }
-        }
-        
-        const captureOccurred = checkCapture(token);
-        updateBoard();
-        
-        const winner = checkWin();
-        if (winner) return;
-
-        if (diceValue === 6 || captureOccurred) {
-            resetTurn();
-        } else {
-            nextTurn();
-        }
-    }
-    
-    function updateBoard() {
-        players.forEach(player => {
-            tokens[player].forEach(token => {
+            players[color].forEach(token => {
+                const tokenEl = tokenElements[color][token.id];
                 let targetCell;
-                if (token.position === -1) {
-                    const base = document.querySelector(`#${player}-base .home-area`);
+                if (token.position === -1) { // In base
+                    const base = document.querySelector(`#${color}-base .home-area`);
                     const yardSpots = base.querySelectorAll('.token-yard');
-                    for(let spot of yardSpots) {
-                        if(spot.childElementCount === 0) {
-                            targetCell = spot;
-                            break;
-                        }
-                    }
-                } else if (token.position > 100) {
-                    if (token.isHome) {
-                        targetCell = document.querySelector(`#home-triangle`);
-                    } else {
-                        targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-                    }
-                } else {
+                    targetCell = Array.from(yardSpots).find(s => !s.hasChildNodes() || !Array.from(s.childNodes).some(cn => cn.id === tokenEl.id));
+                } else if (token.position === -2) { // Disconnected
+                    tokenEl.style.display = 'none';
+                    return;
+                } else if (token.isHome) {
+                    targetCell = document.querySelector(`#home-triangle`);
+                } else if (token.position > 100) { // Home path
+                    targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
+                } else { // Main path
                     targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
-                if (targetCell) targetCell.appendChild(token.element);
+                if (targetCell && tokenEl.parentElement !== targetCell) {
+                    targetCell.appendChild(tokenEl);
+                }
             });
         });
 
-        document.querySelectorAll('.cell').forEach(cell => {
-            const tokensInCell = cell.querySelectorAll('.token');
-            if (tokensInCell.length > 1) {
-                tokensInCell.forEach((tokenEl, i) => {
-                    tokenEl.style.transform = `translate(${i * 4}px, ${i * 4}px)`;
-                    tokenEl.style.zIndex = 10 + i;
-                });
-            } else if (tokensInCell.length === 1) {
-                tokensInCell[0].style.transform = 'translate(0,0)';
-                tokensInCell[0].style.zIndex = 10;
-            }
-        });
-    }
-
-    function checkCapture(movedToken) {
-        if (movedToken.position > 100 || safeSpots.includes(movedToken.position)) return false;
-
-        const targetCell = movedToken.element.parentElement;
-        if (!targetCell) return false;
-
-        const tokensInCell = Array.from(targetCell.querySelectorAll('.token'));
-        let captureOccurred = false;
-
-        tokensInCell.forEach(tEl => {
-            if (tEl.id === movedToken.element.id) return;
-            const t = findTokenByElement(tEl);
-            if (t && t.color !== movedToken.color) {
-                t.position = -1;
-                captureOccurred = true;
-            }
-        });
-        return captureOccurred;
-    }
-    
-    function findTokenByElement(el) {
-        for (const player of players) {
-            for (const token of tokens[player]) {
-                if (token.element === el) return token;
-            }
+        document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
+        if (movableTokens && currentPlayerColor === myPlayerInfo.color) {
+            movableTokens.forEach(t => {
+                tokenElements[t.color][t.id].classList.add('movable');
+            });
         }
-        return null;
-    }
-
-    function nextTurn() {
-        consecutiveSixes = 0;
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-        resetTurn();
-    }
-
-    function resetTurn() {
-        diceRolled = false;
-        diceValue = 0;
-        dice.textContent = '🎲';
-        const currentPlayer = players[currentPlayerIndex];
-        status.textContent = `${currentPlayer}'s turn`;
-        status.style.color = colors[currentPlayer];
-        dice.style.borderColor = colors[currentPlayer];
-    }
-
-    function checkWin() {
-        const winner = players.find(p => tokens[p] && tokens[p].every(t => t.isHome));
+        
+        dice.textContent = diceValue ? ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1] : '🎲';
+        status.style.color = staticColors[currentPlayerColor];
+        dice.style.borderColor = staticColors[currentPlayerColor];
+        
         if (winner) {
+            clearInterval(turnTimerInterval);
             winnerMessage.textContent = `${winner} wins!`;
-            winnerMessage.style.color = colors[winner];
-            restartBtn.style.backgroundColor = colors[winner];
             winnerOverlay.style.display = 'flex';
-            return winner;
+        } else {
+            winnerOverlay.style.display = 'none';
         }
-        return null;
     }
-    
-    function initGame() {
-        winnerOverlay.style.display = 'none';
 
-        players.forEach(player => {
-            const path = [];
-            const start = startPositions[player];
-            for (let i = 0; i < 52; i++) {
-                let pos = start + i;
-                if (pos > 52) pos %= 52;
-                if (pos === 0) pos = 52;
-                path.push(pos);
+    function setupGameListeners() {
+        dice.addEventListener('click', () => {
+            if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
+                socket.emit('rollDice');
             }
-            playerPaths[player] = path;
         });
-
-        createBoard();
-        createTokens();
-        currentPlayerIndex = 0;
-        resetTurn();
-        updateBoard();
+        restartBtn.addEventListener('click', () => window.location.reload());
     }
 
-    dice.addEventListener('click', rollDice);
-    restartBtn.addEventListener('click', initGame);
-
-    // --- Theming Logic ---
-    const themeBtn = document.getElementById('theme-btn');
-    const themeMenu = document.getElementById('theme-menu');
-    const themeOptions = document.querySelectorAll('.theme-option');
-
-    themeBtn.addEventListener('click', () => {
-        themeMenu.classList.toggle('hidden');
+    socket.on('gameStarted', ({ players }) => {
+        lobbyContainer.style.display = 'none';
+        gameContainer.style.display = 'flex';
+        createBoard();
+        createTokenElements(players);
     });
 
+    socket.on('gameStateUpdate', render);
+    
+    // --- CHAT LOGIC ---
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (chatInput.value) {
+            socket.emit('sendMessage', chatInput.value);
+            chatInput.value = '';
+        }
+    });
+
+    socket.on('newMessage', ({ senderColor, message }) => {
+        const item = document.createElement('li');
+        const colorSpan = document.createElement('span');
+        colorSpan.textContent = `${senderColor}: `;
+        colorSpan.style.color = staticColors[senderColor];
+        colorSpan.classList.add('chat-player-color');
+
+        const messageSpan = document.createElement('span');
+        messageSpan.textContent = message;
+        messageSpan.classList.add('chat-message');
+
+        item.appendChild(colorSpan);
+        item.appendChild(messageSpan);
+        chatMessages.appendChild(item);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    socket.on('connect_error', (err) => {
+        lobbyError.textContent = `Connection failed: ${err.message}. Please refresh.`;
+    });
+
+    // --- THEME/SOUND LOGIC ---
+    const themeBtn = document.getElementById('theme-btn');
+    // ... (rest of the theme logic is the same)
+    const themeMenu = document.getElementById('theme-menu');
+    const themeOptions = document.querySelectorAll('.theme-option');
+    themeBtn.addEventListener('click', () => themeMenu.classList.toggle('hidden'));
     themeOptions.forEach(option => {
         option.addEventListener('click', () => {
-            const selectedTheme = option.dataset.theme;
-            applyTheme(selectedTheme);
+            applyTheme(option.dataset.theme);
             themeMenu.classList.add('hidden');
         });
     });
-
-    // Load saved theme on startup
-    const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
-
-
-    // --- Music & Sound Logic ---
     const music = document.getElementById('background-music');
     const muteBtn = document.getElementById('mute-btn');
     const volumeUpIcon = document.getElementById('volume-up-icon');
     const volumeMuteIcon = document.getElementById('volume-mute-icon');
     const musicMap = {
-        cyberpunk: 'assets/audio/cyberpunk.mp3', // Placeholder
-        egypt: 'assets/audio/egypt.mp3',       // Placeholder
-        jurassic: 'assets/audio/jurassic.mp3',   // Placeholder
-        space: 'assets/audio/space.mp3'          // Placeholder
+        cyberpunk: 'audio/cyberpunk.mp3',
+        egypt: 'audio/egypt.mp3',
+        jurassic: 'audio/jurassic.mp3',
+        space: 'audio/space.mp3'
     };
-
     function toggleMute() {
         music.muted = !music.muted;
         localStorage.setItem('ludoMuted', music.muted);
         updateMuteButton();
     }
-
     function updateMuteButton() {
         if (music.muted) {
             volumeUpIcon.classList.add('hidden');
@@ -419,25 +326,22 @@ document.addEventListener('DOMContentLoaded', () => {
             volumeMuteIcon.classList.add('hidden');
         }
     }
-
     muteBtn.addEventListener('click', toggleMute);
-
     function applyTheme(theme) {
         document.body.className = '';
         document.body.classList.add(`theme-${theme}`);
         localStorage.setItem('ludoTheme', theme);
-
-        // Update music source and play
         music.src = musicMap[theme];
-        music.play().catch(e => console.log("Audio play failed, user interaction needed."));
+        if (!music.muted) music.play().catch(e => console.log("Audio play failed"));
     }
-
-    // Load saved mute state
+    const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
     const savedMuted = localStorage.getItem('ludoMuted') === 'true';
     music.muted = savedMuted;
     updateMuteButton();
-
     applyTheme(savedTheme);
-    initGame();
 
+
+    // --- INITIALIZATION ---
+    setupLobbyListeners();
+    setupGameListeners();
 });
