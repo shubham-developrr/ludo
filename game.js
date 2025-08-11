@@ -125,31 +125,22 @@ class Game {
             const path = this.playerPaths[color];
             const currentPathIndex = path.indexOf(token.position);
             const newPathIndex = currentPathIndex + this.state.diceValue;
-            const homeEntrance = this.getHomeEntrancePosition(color);
-
-            // Check if the move crosses the home entrance
-            const currentPosition = token.position;
-            const stepsToMove = this.state.diceValue;
-            const willCrossHome = this.willCrossHomeEntrance(color, currentPosition, stepsToMove);
-
-            if (willCrossHome) {
-                const stepsAfterHome = this.getStepsAfterHomeEntrance(color, currentPosition, stepsToMove);
-                if (stepsAfterHome <= 6) {
-                    if (stepsAfterHome === 6) {
-                        token.position = -2; // Reached final home
-                        token.isHome = true;
-                    } else {
-                        token.position = this.homePaths[color][stepsAfterHome - 1];
-                    }
-                } else {
-                    // Can't overshoot home - invalid move
+            
+            // Simple approach: if we're at position 51 in path (last position), enter home
+            if (newPathIndex >= 51) {
+                const stepsIntoHome = newPathIndex - 51;
+                if (stepsIntoHome >= this.homePaths[color].length) {
+                    // Can't overshoot home
                     return;
                 }
-            } else if (newPathIndex < 52) {
-                token.position = path[newPathIndex];
+                if (stepsIntoHome === this.homePaths[color].length - 1) {
+                    token.position = -2; // Reached final home
+                    token.isHome = true;
+                } else {
+                    token.position = this.homePaths[color][stepsIntoHome];
+                }
             } else {
-                // Completing a full loop without entering home (shouldn't happen normally)
-                token.position = path[newPathIndex % 52];
+                token.position = path[newPathIndex];
             }
         }
 
@@ -183,6 +174,18 @@ class Game {
             const currentHomeIndex = homePath.indexOf(token.position);
             return currentHomeIndex + this.state.diceValue < homePath.length;
         }
+        
+        // For tokens on main path, check if they can move without overshooting home
+        const path = this.playerPaths[token.color];
+        const currentPathIndex = path.indexOf(token.position);
+        const newPathIndex = currentPathIndex + this.state.diceValue;
+        
+        if (newPathIndex >= 51) {
+            // Would enter home path
+            const stepsIntoHome = newPathIndex - 51;
+            return stepsIntoHome < this.homePaths[token.color].length;
+        }
+        
         return true;
     }
 
@@ -199,41 +202,6 @@ class Game {
             });
         });
         return captured;
-    }
-
-    getHomeEntrancePosition(color) {
-        const homeEntrances = { red: 51, green: 12, yellow: 25, blue: 38 };
-        return homeEntrances[color];
-    }
-
-    willCrossHomeEntrance(color, currentPosition, steps) {
-        const homeEntrance = this.getHomeEntrancePosition(color);
-        const path = this.playerPaths[color];
-        const currentIndex = path.indexOf(currentPosition);
-        
-        if (currentIndex === -1) return false;
-        
-        for (let i = 1; i <= steps; i++) {
-            const nextIndex = currentIndex + i;
-            if (nextIndex < path.length && path[nextIndex] === homeEntrance) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    getStepsAfterHomeEntrance(color, currentPosition, totalSteps) {
-        const homeEntrance = this.getHomeEntrancePosition(color);
-        const path = this.playerPaths[color];
-        const currentIndex = path.indexOf(currentPosition);
-        
-        for (let i = 1; i <= totalSteps; i++) {
-            const nextIndex = currentIndex + i;
-            if (nextIndex < path.length && path[nextIndex] === homeEntrance) {
-                return totalSteps - i;
-            }
-        }
-        return 0;
     }
 
     checkWin() {
