@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Sound Manager ---
     const soundManager = new SoundManager();
 
+    // --- Animation Manager ---
+    const animationManager = new AnimationManager();
+
     // ################# LOBBY LOGIC #################
 
     // Mode switching
@@ -314,6 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameState.diceValue === 6) {
                 soundManager.play('rollingASix');
             }
+            // Trigger dice roll animation
+            animationManager.animateDiceRoll(dice, gameState.diceValue);
         }
         // Your Turn Alert
         const oldPlayer = clientGameState.currentPlayerColor;
@@ -388,9 +393,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else { // Main path
                     targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
+                
+                // Use animation manager for token movement
                 if (targetCell && tokenEl.parentElement !== targetCell) {
-                    targetCell.appendChild(tokenEl);
+                    // Check if this is a home arrival
+                    if (token.position === -2 && token.isHome) {
+                        animationManager.animateHomeArrival(tokenEl, targetCell);
+                    }
+                    
+                    // Check if this is a capture (token moved to a cell with another token)
+                    const existingToken = targetCell.querySelector('.token');
+                    if (existingToken && existingToken !== tokenEl) {
+                        animationManager.animateCapture(existingToken, tokenEl);
+                    }
+                    
+                    // Animate token movement
+                    animationManager.animateTokenMove(tokenEl, targetCell);
                 }
+                
                 tokenEl.style.display = 'flex'; // Ensure token is visible
             });
         });
@@ -602,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         option.addEventListener('click', () => {
             soundManager.play('buttonClick');
             applyTheme(option.dataset.theme);
-            themeMenu.classList.add('hidden');
+            // Don't close menu - keep it open for other settings
         });
     });
     
@@ -656,6 +676,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Close settings menu when clicking on non-interactive areas
+    themeMenu.addEventListener('click', (e) => {
+        if (e.target.classList.contains('settings-section') || e.target.tagName === 'H4') {
+            themeMenu.classList.add('hidden');
+        }
+    });
+    
     function applyTheme(theme) {
         document.body.className = '';
         document.body.classList.add(`theme-${theme}`);
@@ -675,6 +702,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedMusicVolume = parseFloat(localStorage.getItem('ludoMusicVolume')) || 0.5;
     const savedSfxVolume = parseFloat(localStorage.getItem('ludoSfxVolume')) || 0.5;
     
+    // Load saved animation settings
+    const savedGameSpeed = localStorage.getItem('ludoGameSpeed') || '1';
+    const savedAnimationStyle = localStorage.getItem('ludoAnimationStyle') || 'modern';
+    
     // Apply saved settings
     soundManager.setMusicMuted(savedMusicMuted);
     soundManager.setSfxMuted(savedSfxMuted);
@@ -688,6 +719,21 @@ document.addEventListener('DOMContentLoaded', () => {
     sfxVolumeSlider.value = savedSfxVolume * 100;
     musicVolumeValue.textContent = `${Math.round(savedMusicVolume * 100)}%`;
     sfxVolumeValue.textContent = `${Math.round(savedSfxVolume * 100)}%`;
+    
+    // Update animation UI controls
+    const speedOptions = document.querySelectorAll('.speed-option');
+    speedOptions.forEach(option => {
+        if (option.dataset.speed === savedGameSpeed) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+    
+    const animationToggle = document.getElementById('animation-style-toggle');
+    if (animationToggle) {
+        animationToggle.checked = savedAnimationStyle === 'playful';
+    }
     
     applyTheme(savedTheme);
     
@@ -712,4 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIALIZATION ---
     setupLobbyListeners();
     setupGameListeners();
+    
+    // Initialize animation manager event listeners
+    animationManager.setupEventListeners();
 });
