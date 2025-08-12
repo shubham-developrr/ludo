@@ -9,21 +9,24 @@
     align-items: center;
     backdrop-filter: blur(10px);
     z-index: 200;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 .lobby-box {
     background: rgba(30, 30, 40, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
-    padding: 40px;
+    padding: clamp(20px, 4vw, 40px);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: var(--cyber-white);
+    width: min(720px, 100%);
 }
 
 .lobby-box h2 {
-    font-size: 2.5em;
-    margin-bottom: 30px;
+    font-size: clamp(1.4rem, 4.5vw, 2.5rem);
+    margin-bottom: clamp(16px, 4vw, 30px);
     text-shadow: 0 0 10px var(--blue);
 }
 
@@ -31,8 +34,9 @@
 .mode-selection {
     display: flex;
     gap: 10px;
-    margin-bottom: 30px;
+    margin-bottom: clamp(16px, 4vw, 30px);
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .mode-btn {
@@ -43,7 +47,7 @@
     border-radius: 10px;
     cursor: pointer;
     font-family: 'Oxanium', sans-serif;
-    font-size: 1em;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
     transition: all 0.3s ease;
 }
 
@@ -63,7 +67,7 @@
 
 .local-game-setup label {
     color: var(--cyber-white);
-    font-size: 1.2em;
+    font-size: clamp(1rem, 2.8vw, 1.2rem);
     font-weight: bold;
 }
 
@@ -89,7 +93,7 @@
     flex-direction: column;
     gap: 15px;
     width: 100%;
-    max-width: 300px;
+    max-width: 420px;
 }
 
 .player-config {
@@ -115,13 +119,13 @@
 .player-color.blue { color: var(--blue); }
 
 .player-type {
-    min-width: 100px;
+    min-width: 120px;
 }
 
 .lobby-btn {
     width: 100%;
     padding: 15px;
-    font-size: 1.2em;
+    font-size: clamp(1rem, 2.8vw, 1.2rem);
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
     font-weight: 700;
@@ -153,7 +157,7 @@
 
 #room-code-input {
     padding: 15px;
-    font-size: 1.2em;
+    font-size: clamp(1rem, 2.6vw, 1.2rem);
     text-align: center;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--light-gray);
@@ -183,7 +187,7 @@
 }
 
 #room-info p {
-    font-size: 1.2em;
+    font-size: clamp(1rem, 2.8vw, 1.2rem);
     margin-bottom: 15px;
 }
 
@@ -235,4 +239,10 @@
 
 .kick-btn:hover {
     opacity: 1;
+}
+
+/* Small screens: tighten spacing */
+@media (max-width: 480px) {
+    .player-config { padding: 8px; }
+    .player-color { min-width: 70px; }
 }
