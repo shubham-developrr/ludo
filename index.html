@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ludo Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,7 +83,7 @@
         </div>
     </div>
 
-    <div class="game-container" style="display: none;">
+    <div class="game-container responsive-container" style="display: none;">
         <div id="ludo-board"></div>
         <div class="controls">
             <div id="dice">🎲</div>
@@ -89,7 +92,7 @@
         <div id="chat-container">
             <ul id="chat-messages"></ul>
             <form id="chat-form" action="">
-                <input id="chat-input" autocomplete="off" /><button>Send</button>
+                <input id="chat-input" autocomplete="off" placeholder="Type a message..." /><button>Send</button>
             </form>
         </div>
     </div>
@@ -101,6 +104,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="responsive.js"></script>
     <script src="ai-player.js"></script>
     <script src="local-game.js"></script>
     <script src="script.js"></script>
