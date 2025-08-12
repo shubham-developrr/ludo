@@ -367,6 +367,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         restartBtn.addEventListener('click', () => window.location.reload());
+
+        // Resize/orientation handling: rebuild board grid and re-attach tokens into proper cells
+        const handleResize = () => {
+            if (getComputedStyle(gameContainer).display === 'none') return;
+            const players = Object.keys(tokenElements).map(color => ({ color }));
+            const savedPositions = {};
+            Object.keys(tokenElements).forEach(color => {
+                savedPositions[color] = tokenElements[color].map((el, idx) => {
+                    // Determine logical position from current game state
+                    const tokenState = clientGameState.players?.[color]?.[idx];
+                    return tokenState ? tokenState.position : -1;
+                });
+            });
+            createBoard();
+            createTokenElements(players);
+            // Restore token locations according to saved positions
+            Object.keys(savedPositions).forEach(color => {
+                savedPositions[color].forEach((pos, idx) => {
+                    const tokenEl = tokenElements[color][idx];
+                    let targetCell;
+                    if (pos === -1) {
+                        targetCell = document.getElementById(`${color}-yard-${idx}`);
+                    } else if (pos === -2) {
+                        targetCell = document.querySelector('#home-triangle');
+                    } else if (pos > 100) {
+                        targetCell = document.querySelector(`[data-home-path-index='${pos}']`);
+                    } else if (pos > 0) {
+                        targetCell = document.querySelector(`[data-path-index='${pos}']`);
+                    }
+                    if (targetCell) targetCell.appendChild(tokenEl);
+                });
+            });
+        };
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
     }
 
     socket.on('gameStarted', ({ players }) => {
