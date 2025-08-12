@@ -43,7 +43,7 @@ class SoundManager {
             return;
         }
 
-        const soundInstance = sound.cloneNode();
+        const soundInstance = sound.cloneNode(true);
         soundInstance.volume = (options.volume || sound.volume) * this.masterVolume;
         soundInstance.playbackRate = options.speed || 1;
         soundInstance.play().catch(e => console.error(`Error playing sound: ${name}`, e));
