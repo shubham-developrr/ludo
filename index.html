@@ -81,8 +81,10 @@
     </div>
 
     <div class="game-container" style="display: none;">
+        <div id="effect-container" class="effect-container"></div>
         <div id="ludo-board"></div>
         <div class="controls">
+            <div id="lucky-streak-container"></div>
             <div id="dice">🎲</div>
             <div id="game-status">Red's turn</div>
         </div>
@@ -113,10 +115,24 @@
                 </svg>
             </button>
             <div id="theme-menu" class="theme-menu hidden">
+                <div class="menu-header">Theme</div>
                 <button class="theme-option" data-theme="cyberpunk">Cyberpunk</button>
                 <button class="theme-option" data-theme="egypt">Ancient Egypt</button>
                 <button class="theme-option" data-theme="jurassic">Jurassic Jungle</button>
                 <button class="theme-option" data-theme="space">Outer Space</button>
+                <div class="menu-divider"></div>
+                <div class="menu-header">Animation Style</div>
+                <div class="setting-group">
+                    <button class="setting-option anim-style-option" data-style="modern">Modern</button>
+                    <button class="setting-option anim-style-option" data-style="playful">Playful</button>
+                </div>
+                <div class="menu-divider"></div>
+                <div class="menu-header">Animation Speed</div>
+                <div class="setting-group">
+                    <button class="setting-option anim-speed-option" data-speed="1">1x</button>
+                    <button class="setting-option anim-speed-option" data-speed="1.5">1.5x</button>
+                    <button class="setting-option anim-speed-option" data-speed="2">2x</button>
+                </div>
             </div>
         </div>
         <button id="mute-btn" class="ui-btn">

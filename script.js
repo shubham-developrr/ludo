@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localGame = new LocalGame(players, () => {
             if (localGame) render(localGame.getState());
         });
+        window.localGame = localGame; // Expose for testing
         
         // Hide lobby and show game
         lobbyContainer.style.display = 'none';
@@ -202,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const safeSpots = [1, 9, 14, 22, 27, 35, 40, 48];
 
     let clientGameState = {};
+    let isAnimating = false; // Animation lock
     let tokenElements = {};
     let turnTimerInterval = null;
 
@@ -277,9 +279,166 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    function render(gameState) {
+    function animateTokenMove(tokenEl, startCell, endCell) {
+        return new Promise(resolve => {
+            const startRect = startCell.getBoundingClientRect();
+            const endRect = endCell.getBoundingClientRect();
+
+            const deltaX = endRect.left - startRect.left;
+            const deltaY = endRect.top - startRect.top;
+            const distance = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+
+            const isPlayful = document.body.classList.contains('animation-playful');
+            const speedMultiplier = parseFloat(localStorage.getItem('ludoAnimSpeed') || '1');
+
+            let duration, keyframes;
+            const isShortMove = distance < (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-size')) * 3);
+
+            if (isShortMove) { // Hop animation
+                duration = 300 / speedMultiplier;
+                const midX = deltaX / 2;
+                const midY = deltaY / 2 - 30; // Arc height
+                if (isPlayful) {
+                    keyframes = [
+                        { transform: `translate(0, 0) scale(1)`, zIndex: 50, easing: 'ease-in' },
+                        { transform: `translate(${deltaX*0.2}px, ${deltaY*0.2}px) scale(1.2, 0.8)`, zIndex: 50 },
+                        { transform: `translate(${midX}px, ${midY}px) scale(0.9, 1.1) rotate(5deg)`, zIndex: 50, easing: 'linear' },
+                        { transform: `translate(${deltaX}px, ${deltaY}px) scale(1)`, zIndex: 50, easing: 'ease-out' }
+                    ];
+                } else { // Modern Hop
+                     keyframes = [
+                        { transform: `translate(0, 0) scale(1.1)`, zIndex: 50, easing: 'ease-in' },
+                        { transform: `translate(${midX}px, ${midY}px) scale(1.1)`, zIndex: 50, easing: 'linear' },
+                        { transform: `translate(${deltaX}px, ${deltaY}px) scale(1)`, zIndex: 50, easing: 'ease-out' }
+                    ];
+                }
+            } else { // Glide animation
+                duration = (100 * distance / 100) / speedMultiplier; // Duration based on distance
+                if (isPlayful) {
+                    keyframes = [
+                        { transform: `translate(0, 0) rotate(0deg)`, zIndex: 50 },
+                        { transform: `translate(${deltaX * 0.25}px, ${deltaY * 0.25}px) rotate(-5deg)`, zIndex: 50, offset: 0.25 },
+                        { transform: `translate(${deltaX * 0.5}px, ${deltaY * 0.5}px) rotate(5deg)`, zIndex: 50, offset: 0.5 },
+                        { transform: `translate(${deltaX * 0.75}px, ${deltaY * 0.75}px) rotate(-5deg)`, zIndex: 50, offset: 0.75 },
+                        { transform: `translate(${deltaX}px, ${deltaY}px) rotate(0deg)`, zIndex: 50 }
+                    ];
+                } else { // Modern Glide
+                    keyframes = [
+                        { transform: 'translate(0, 0)', zIndex: 50 },
+                        { transform: `translate(${deltaX}px, ${deltaY}px)`, zIndex: 50 }
+                    ];
+                }
+            }
+
+            const animation = tokenEl.animate(keyframes, {
+                duration: Math.max(200, duration), // Ensure a minimum duration
+                easing: 'ease-in-out',
+                fill: 'forwards'
+            });
+
+            animation.onfinish = () => {
+                tokenEl.style.transform = '';
+                tokenEl.style.zIndex = '';
+                endCell.appendChild(tokenEl);
+                resolve();
+            };
+        });
+    }
+
+    function animateDiceRoll(newValue) {
+        const dice = document.getElementById('dice');
+        const isPlayful = document.body.classList.contains('animation-playful');
+        const speedMultiplier = parseFloat(localStorage.getItem('ludoAnimSpeed') || '1');
+
+        let keyframes;
+        let duration;
+
+        if (isPlayful) {
+            duration = 800 / speedMultiplier;
+            keyframes = [
+                { transform: 'scale(1) rotate(0deg)' },
+                { transform: 'scale(1.3, 0.8) rotate(-5deg)', offset: 0.2 },
+                { transform: 'scale(0.9, 1.2) rotate(10deg) translateY(-20px)', offset: 0.4 },
+                { transform: 'scale(1.1, 0.9) rotate(-10deg)', offset: 0.6 },
+                { transform: 'scale(0.95, 1.05) rotate(5deg)', offset: 0.8 },
+                { transform: 'scale(1) rotate(0deg)' }
+            ];
+        } else { // Modern
+            duration = 700 / speedMultiplier;
+            keyframes = [
+                { transform: 'rotateX(0deg) rotateY(0deg) scale(1)' },
+                { transform: 'rotateX(-180deg) rotateY(0deg) scale(1.2)', offset: 0.25 },
+                { transform: 'rotateX(-180deg) rotateY(-180deg) scale(1.2)', offset: 0.5 },
+                { transform: 'rotateX(-360deg) rotateY(-180deg) scale(1.2)', offset: 0.75 },
+                { transform: 'rotateX(-360deg) rotateY(-360deg) scale(1)' }
+            ];
+        }
+
+        const animation = dice.animate(keyframes, { duration, easing: 'ease-in-out' });
+
+        animation.onfinish = () => {
+            dice.textContent = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][newValue - 1];
+            dice.dataset.value = newValue;
+        };
+
+        return animation.finished;
+    }
+
+    async function render(gameState) {
+        if (isAnimating) {
+            // If we get a new state while animating, queue it up to render after.
+            // This prevents visual bugs from concurrent renders.
+            setTimeout(() => render(gameState), 100);
+            return;
+        }
+
+        const previousGameState = JSON.parse(JSON.stringify(clientGameState));
         clientGameState = gameState;
         const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
+
+        isAnimating = true;
+
+        // --- Handle Animations ---
+        const animationPromises = [];
+
+        // Animate dice roll if value has changed
+        if (diceValue && (!previousGameState.diceValue || previousGameState.diceValue !== diceValue)) {
+            animationPromises.push(animateDiceRoll(diceValue));
+        }
+
+        // Animate token movements
+        Object.keys(players).forEach(color => {
+            players[color].forEach(token => {
+                const oldPlayerState = previousGameState.players ? previousGameState.players[color] : null;
+                const oldToken = oldPlayerState ? oldPlayerState.find(t => t.id === token.id) : null;
+
+                if (oldToken && oldToken.position !== token.position) {
+                    const tokenEl = tokenElements[color][token.id];
+                    const startCell = getCellFromPosition(color, oldToken.position, oldToken.id);
+                    const endCell = getCellFromPosition(color, token.position, token.id);
+
+                    // Home arrival detection
+                    if (token.position === -2 && oldToken.position !== -2) {
+                        playHomeEffect(color);
+                    }
+
+                    // Capture detection
+                    if (token.position === -1 && oldToken.position > 0) {
+                        const capturedCell = getCellFromPosition(color, oldToken.position, oldToken.id);
+                        if(capturedCell) playCaptureEffect(color, capturedCell);
+                    }
+
+
+                    if (startCell && endCell) {
+                        animationPromises.push(animateTokenMove(tokenEl, startCell, endCell));
+                    }
+                }
+            });
+        });
+
+        await Promise.all(animationPromises);
+
+        // --- Sync DOM state after animations ---
 
         if (turnTimerInterval) clearInterval(turnTimerInterval);
         turnTimerInterval = setInterval(() => {
@@ -291,39 +450,32 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = statusText;
         }, 500);
 
+        // Place all tokens in their final positions
         Object.keys(tokenElements).forEach(color => {
-            if (!players[color]) { // Player might have disconnected
+            if (!players[color]) {
                  tokenElements[color].forEach(el => el.style.display = 'none');
                  return;
             }
             players[color].forEach(token => {
                 const tokenEl = tokenElements[color][token.id];
-                let targetCell;
-                if (token.position === -1) { // In base
-                    targetCell = document.getElementById(`${color}-yard-${token.id}`);
-                } else if (token.position === -2) { // At home or disconnected
-                    if (token.isHome) {
-                        targetCell = document.querySelector(`#home-triangle`);
-                    } else {
-                        tokenEl.style.display = 'none';
-                        return;
-                    }
-                } else if (token.position > 100) { // Home path
-                    targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-                } else { // Main path
-                    targetCell = document.querySelector(`[data-path-index='${token.position}']`);
-                }
+                const targetCell = getCellFromPosition(color, token.position, token.id);
+
                 if (targetCell && tokenEl.parentElement !== targetCell) {
-                    targetCell.appendChild(tokenEl);
+                    if(token.isHome) {
+                        // Special handling for home triangle - just place it
+                        targetCell.appendChild(tokenEl);
+                    } else {
+                       targetCell.appendChild(tokenEl);
+                    }
                 }
-                tokenEl.style.display = 'flex'; // Ensure token is visible
+                 tokenEl.style.display = token.position === -2 && !token.isHome ? 'none' : 'flex';
             });
         });
 
+        // Update UI classes
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
         document.querySelectorAll('.current-player').forEach(el => el.classList.remove('current-player'));
         
-        // Add current-player class to current player's tokens for better layering on safe spots
         if (tokenElements[currentPlayerColor]) {
             tokenElements[currentPlayerColor].forEach(tokenEl => {
                 tokenEl.classList.add('current-player');
@@ -331,18 +483,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (movableTokens && (!isLocalGame || currentPlayerType === 'human')) {
-            if (!isLocalGame && currentPlayerColor === myPlayerInfo.color) {
-                movableTokens.forEach(t => {
-                    tokenElements[t.color][t.id].classList.add('movable');
-                });
-            } else if (isLocalGame && currentPlayerType === 'human') {
+            const playerColor = isLocalGame ? currentPlayerColor : myPlayerInfo.color;
+            if (currentPlayerColor === playerColor) {
                 movableTokens.forEach(t => {
                     tokenElements[t.color][t.id].classList.add('movable');
                 });
             }
         }
         
-        dice.textContent = diceValue ? ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1] : '🎲';
+        if (!diceValue) {
+            dice.textContent = '🎲';
+            dice.dataset.value = '';
+        }
+
+        // --- Lucky Streak Indicator ---
+        const streakContainer = document.getElementById('lucky-streak-container');
+        if (gameState.consecutiveSixes >= 2) {
+            if (streakContainer.children.length === 0) { // Only add if not already there
+                const isPlayful = document.body.classList.contains('animation-playful');
+                for (let i = 0; i < 3; i++) {
+                    const flame = document.createElement('div');
+                    flame.className = `flame ${isPlayful ? 'playful' : 'modern'}`;
+                    streakContainer.appendChild(flame);
+                }
+            }
+        } else {
+            streakContainer.innerHTML = '';
+        }
         status.style.color = staticColors[currentPlayerColor];
         dice.style.borderColor = staticColors[currentPlayerColor];
         
@@ -352,6 +519,83 @@ document.addEventListener('DOMContentLoaded', () => {
             winnerOverlay.style.display = 'flex';
         } else {
             winnerOverlay.style.display = 'none';
+        }
+
+        isAnimating = false;
+        window.isAnimating = false; // Expose for testing
+    }
+
+    function playCaptureEffect(tokenColor, atCell) {
+        const effectContainer = document.getElementById('effect-container');
+        const isPlayful = document.body.classList.contains('animation-playful');
+        const atRect = atCell.getBoundingClientRect();
+        const boardRect = document.getElementById('ludo-board').getBoundingClientRect();
+
+        const x = atRect.left - boardRect.left + atRect.width / 2;
+        const y = atRect.top - boardRect.top + atRect.height / 2;
+
+        if (isPlayful) {
+            const swatEl = document.createElement('div');
+            swatEl.textContent = '✋';
+            swatEl.className = 'swat-effect';
+            swatEl.style.left = `${x}px`;
+            swatEl.style.top = `${y}px`;
+            effectContainer.appendChild(swatEl);
+            setTimeout(() => swatEl.remove(), 500);
+        } else { // Modern
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'shatter-particle';
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.color = staticColors[tokenColor];
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = Math.random() * 50 + 20;
+                particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+                particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+                effectContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 800);
+            }
+        }
+    }
+
+    function playHomeEffect(tokenColor) {
+        const isPlayful = document.body.classList.contains('animation-playful');
+        const homeTriangle = document.querySelector('#home-triangle');
+
+        if (isPlayful) {
+            const effectContainer = document.getElementById('effect-container');
+            const atRect = homeTriangle.getBoundingClientRect();
+            const boardRect = document.getElementById('ludo-board').getBoundingClientRect();
+            const x = atRect.left - boardRect.left;
+            const y = atRect.top - boardRect.top;
+
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'confetti-particle';
+                particle.style.left = `${x + Math.random() * atRect.width}px`;
+                particle.style.top = `${y + Math.random() * atRect.height}px`;
+                particle.style.setProperty('--bg', staticColors[Object.keys(staticColors)[Math.floor(Math.random() * 4)]]);
+                particle.style.animationDelay = `${Math.random() * 1}s`;
+                effectContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 3000);
+            }
+        } else { // Modern
+            homeTriangle.style.setProperty('--glow-color', staticColors[tokenColor]);
+            homeTriangle.classList.add('home-glow-pulse');
+            setTimeout(() => homeTriangle.classList.remove('home-glow-pulse'), 2000);
+        }
+    }
+
+    function getCellFromPosition(color, position, tokenId) {
+        if (position === -1) { // In base
+            return document.getElementById(`${color}-yard-${tokenId}`);
+        } else if (position === -2) { // At home
+            return document.querySelector(`#home-triangle`);
+        } else if (position > 100) { // Home path
+            return document.querySelector(`[data-home-path-index='${position}']`);
+        } else { // Main path
+            return document.querySelector(`[data-path-index='${position}']`);
         }
     }
 

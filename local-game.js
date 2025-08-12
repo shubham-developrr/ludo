@@ -56,6 +56,22 @@ class LocalGame {
         return this.getCurrentPlayerConfig().type === 'ai';
     }
 
+    // --- Methods for Testing/Verification ---
+    forceDiceValue(value) {
+        this.diceValue = value;
+        if (this.diceValue === 6) {
+            this.consecutiveSixes++;
+        } else {
+            this.consecutiveSixes = 0;
+        }
+        this.turnState = 'moving';
+        this.updateMovableTokens();
+        this.callback();
+        if (this.movableTokens.length === 0) {
+            setTimeout(() => this.endTurn(), 1500);
+        }
+    }
+
     rollDice() {
         if (this.turnState !== 'rolling' || this.winner) return;
 
@@ -353,17 +369,21 @@ class LocalGame {
         this.moveToken(bestMove.color, bestMove.id);
     }
 
+    forceNextTurn() {
+        this.endTurn();
+    }
+
     getState() {
         return {
             players: this.players,
             currentPlayerColor: this.getCurrentPlayer(),
             diceValue: this.diceValue,
             turnState: this.turnState,
-            movableTokens: this.movableTokens,
             winner: this.winner,
             turnEndsAt: this.turnStartTime + this.turnDuration,
             isLocalGame: true,
-            currentPlayerType: this.getCurrentPlayerConfig().type
+            currentPlayerType: this.getCurrentPlayerConfig().type,
+            consecutiveSixes: this.consecutiveSixes
         };
     }
 }

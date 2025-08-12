@@ -139,8 +139,43 @@ body.theme-space {
     font-size: 1em;
     border-radius: 4px;
 }
-.theme-option:hover {
+.theme-option:hover, .setting-option:hover {
     background: var(--light-gray);
+}
+.menu-header {
+    padding: 8px 10px 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--light-gray);
+    text-transform: uppercase;
+}
+.menu-divider {
+    height: 1px;
+    background-color: var(--light-gray);
+    margin: 5px 10px;
+}
+.setting-group {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 5px;
+}
+.setting-option {
+    background: none;
+    border: 1px solid var(--light-gray);
+    color: var(--cyber-white);
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Oxanium', sans-serif;
+    font-size: 0.9em;
+    border-radius: 4px;
+    flex-grow: 1;
+    margin: 2px;
+}
+.setting-option.active {
+    background: var(--blue);
+    color: var(--dark-bg);
+    border-color: var(--blue);
 }
 #volume-mute-icon.hidden, #volume-up-icon.hidden {
     display: none;
@@ -299,13 +334,116 @@ body.theme-space {
     transform: scale(1.05);
     box-shadow: 0 0 15px var(--cyber-white);
 }
-#dice.rolling {
-    animation: roll 0.5s ease-out;
+/* Dice animations are now handled in script.js */
+
+/* --- Lucky Streak Indicator --- */
+#lucky-streak-container {
+    position: absolute;
+    bottom: 80px; /* Position above the dice */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 50px;
+    pointer-events: none;
+    filter: blur(2px);
 }
-@keyframes roll {
-    0% { transform: rotate(0deg) scale(1); }
-    100% { transform: rotate(360deg) scale(1.2); }
+.flame {
+    position: absolute;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50% 0 50% 50%;
+    transform: rotate(-45deg);
+    animation: flicker 1s infinite;
 }
+.flame.modern {
+    background: radial-gradient(circle, #fff, #00ffff, #00aaff);
+    box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00aaff;
+}
+.flame.playful {
+    background: radial-gradient(circle, #fff, #ffdd00, #ff8800);
+    box-shadow: 0 0 10px #ffdd00, 0 0 20px #ff8800, 0 0 30px #ff4400;
+}
+.flame:nth-child(2) {
+    left: 20px;
+    animation-duration: 1.2s;
+    animation-delay: 0.2s;
+}
+.flame:nth-child(3) {
+    left: -20px;
+    animation-duration: 0.8s;
+    animation-delay: 0.5s;
+}
+
+@keyframes flicker {
+    0%, 100% { transform: rotate(-45deg) scaleY(1); opacity: 1; }
+    50% { transform: rotate(-40deg) scaleY(1.2); opacity: 0.8; }
+}
+
+
+/* --- Special Effects --- */
+.effect-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Modern Capture - Shatter */
+.shatter-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: currentColor;
+    border-radius: 50%;
+    animation: shatter 0.8s ease-out forwards;
+}
+@keyframes shatter {
+    from { transform: translate(0, 0) scale(1); opacity: 1; }
+    to { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* Playful Home - Confetti */
+.confetti-particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: var(--bg);
+    opacity: 0;
+    animation: confetti-fall 2s ease-in-out forwards;
+}
+@keyframes confetti-fall {
+    0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; }
+    100% { transform: translateY(150px) rotateZ(360deg); opacity: 0; }
+}
+
+/* Playful Capture - Swat */
+.swat-effect {
+    position: absolute;
+    font-size: 4em;
+    animation: swat 0.5s ease-in-out forwards;
+    transform-origin: bottom right;
+}
+@keyframes swat {
+    0% { transform: scale(0) rotate(45deg); }
+    50% { transform: scale(1) rotate(-20deg); }
+    100% { transform: scale(0) rotate(0deg); }
+}
+
+/* Modern Home - Glow */
+.home-glow-pulse {
+    animation: home-glow 1s ease-in-out 2;
+}
+@keyframes home-glow {
+    0% { box-shadow: 0 0 20px 10px var(--glow-color); }
+    50% { box-shadow: 0 0 40px 20px var(--glow-color); }
+    100% { box-shadow: 0 0 20px 10px var(--glow-color); }
+}
+
+
 #game-status {
     color: var(--cyber-white);
     font-size: 1.5em;
