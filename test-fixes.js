@@ -1,4 +1,25 @@
-// Test script to verify the fixes for Ludo game issues
+// Monkey-patch timers to un-reference them, allowing the process to exit.
+const _setTimeout = global.setTimeout;
+const _setInterval = global.setInterval;
+const _setImmediate = global.setImmediate;
+
+global.setTimeout = (...args) => {
+  const t = _setTimeout(...args);
+  t?.unref?.();
+  return t;
+};
+global.setInterval = (...args) => {
+  const t = _setInterval(...args);
+  t?.unref?.();
+  return t;
+};
+global.setImmediate = (...args) => {
+  const t = _setImmediate(...args);
+  t?.unref?.();
+  return t;
+};
+
+// Now require Game after the patch:
 const Game = require('./game.js');
 
 console.log('Testing Ludo game fixes...\n');
@@ -13,13 +34,20 @@ const mockPlayers = [
 ];
 
 const game = new Game(mockPlayers, () => {});
-console.log('Start positions:', game.startPositions);
-console.log('Expected: red=1, yellow=14, green=27, blue=40');
-console.log('Correct:', 
-    game.startPositions.red === 1 && 
-    game.startPositions.yellow === 14 && 
-    game.startPositions.green === 27 && 
-    game.startPositions.blue === 40 ? '✓' : '✗');
+console.log('Testing start positions by calling getStartPosition(color)...');
+console.log('Expected: red=1, green=14, yellow=27, blue=40');
+
+const positionsCorrect =
+    game.getStartPosition('red') === 1 &&
+    game.getStartPosition('green') === 14 &&
+    game.getStartPosition('yellow') === 27 &&
+    game.getStartPosition('blue') === 40;
+
+console.log('Correct:', positionsCorrect ? '✓' : '✗');
+if (!positionsCorrect) {
+    console.error('Start position test failed!');
+    process.exit(1);
+}
 
 // Test 2: Verify local game AI logic after rolling 6
 console.log('\n=== Test 2: Local Game AI After Rolling 6 ===');
