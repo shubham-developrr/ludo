@@ -55,18 +55,20 @@ class Game {
         
         if (!isCurrentPlayer || this.turnState !== 'rolling' || this.winner) return;
 
-        // Modified three sixes rule: after 2 consecutive sixes, only roll 1-5
-        if (this.consecutiveSixes >= 2) {
-            this.diceValue = Math.floor(Math.random() * 5) + 1; // 1-5 only
-        } else {
-            this.diceValue = Math.floor(Math.random() * 6) + 1; // 1-6 normally
-        }
+        this.diceValue = Math.floor(Math.random() * 6) + 1;
         
-        // Track consecutive sixes
         if (this.diceValue === 6) {
             this.consecutiveSixes++;
         } else {
             this.consecutiveSixes = 0;
+        }
+
+        if (this.consecutiveSixes === 3) {
+            // Penalty for rolling three 6s
+            this.lastMoveEvents = { tripleSixPenalty: true };
+            this.endTurn(); // This also resets consecutiveSixes
+            this.broadcastState();
+            return;
         }
         
         this.turnState = 'moving';
@@ -183,6 +185,9 @@ class Game {
         this.checkWinner();
         
         const reachedHome = (newPosition === -2);
+
+        // Set events for this move
+        this.lastMoveEvents = { capture: captureOccurred, home: reachedHome };
         
         if ((this.diceValue === 6 || captureOccurred || reachedHome) && !this.winner) {
             this.turnState = 'rolling';
@@ -259,12 +264,14 @@ class Game {
             winner: this.winner,
             turnEndsAt: this.turnEndsAt,
             isLocalGame: false,
-            currentPlayerType: 'human'
+            currentPlayerType: 'human',
+            lastMoveEvents: this.lastMoveEvents || null
         };
         
         if (this.onStateChange) {
             this.onStateChange(gameState);
         }
+        this.lastMoveEvents = null; // Reset after broadcasting
     }
 
     getState() {
