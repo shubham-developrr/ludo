@@ -1,6 +1,131 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
+    // --- RESPONSIVE BEHAVIOR SETUP ---
+    
+    // Viewport height fix for mobile browsers
+    function setViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    // Handle orientation changes and viewport updates
+    function handleOrientationChange() {
+        setTimeout(() => {
+            setViewportHeight();
+            // Force a repaint to ensure proper layout
+            const gameContainer = document.querySelector('.game-container');
+            if (gameContainer && gameContainer.style.display !== 'none') {
+                gameContainer.style.transform = 'translateZ(0)';
+                setTimeout(() => {
+                    gameContainer.style.transform = '';
+                }, 10);
+            }
+        }, 100);
+    }
+    
+    // Touch interaction improvements
+    function addTouchSupport() {
+        // Prevent default touch behaviors on game elements
+        const gameElements = document.querySelectorAll('.token, .ui-btn, #dice, .lobby-btn, .mode-btn');
+        gameElements.forEach(element => {
+            element.addEventListener('touchstart', (e) => {
+                element.classList.add('touched');
+            }, { passive: true });
+            
+            element.addEventListener('touchend', (e) => {
+                setTimeout(() => {
+                    element.classList.remove('touched');
+                }, 100);
+            }, { passive: true });
+        });
+        
+        // Improve scroll behavior on mobile
+        const scrollElements = document.querySelectorAll('#chat-messages, #player-list, .lobby-box');
+        scrollElements.forEach(element => {
+            element.style.webkitOverflowScrolling = 'touch';
+        });
+    }
+    
+    // Chat toggle for mobile
+    function setupMobileChatToggle() {
+        const chatContainer = document.getElementById('chat-container');
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        
+        if (chatToggleBtn && chatContainer) {
+            let chatVisible = window.innerWidth > 767; // Show by default on desktop
+            
+            function toggleChat() {
+                chatVisible = !chatVisible;
+                chatContainer.style.display = chatVisible ? 'flex' : 'none';
+                chatToggleBtn.setAttribute('aria-expanded', chatVisible);
+                
+                // Update icon or add visual feedback
+                chatToggleBtn.style.opacity = chatVisible ? '1' : '0.7';
+            }
+            
+            // Auto-hide chat on mobile initially
+            if (window.innerWidth <= 767) {
+                chatContainer.style.display = 'none';
+                chatVisible = false;
+                chatToggleBtn.style.opacity = '0.7';
+            }
+            
+            chatToggleBtn.addEventListener('click', toggleChat);
+            chatToggleBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                toggleChat();
+            });
+        }
+    }
+    
+    // Keyboard support for mobile
+    function handleMobileKeyboard() {
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                // Small delay to ensure keyboard is shown
+                setTimeout(() => {
+                    if (window.innerHeight < 500) { // Likely keyboard is showing
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            });
+        });
+    }
+    
+    // Initialize responsive features
+    setViewportHeight();
+    addTouchSupport();
+    setupMobileChatToggle();
+    handleMobileKeyboard();
+    
+    // Event listeners for responsive behavior
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
+    // Add CSS classes for touch device detection
+    if ('ontouchstart' in window) {
+        document.body.classList.add('touch-device');
+    }
+    
+    // Add CSS classes for device type detection
+    function detectDeviceType() {
+        const width = window.innerWidth;
+        document.body.classList.remove('mobile', 'tablet', 'desktop');
+        
+        if (width <= 767) {
+            document.body.classList.add('mobile');
+        } else if (width <= 1023) {
+            document.body.classList.add('tablet');
+        } else {
+            document.body.classList.add('desktop');
+        }
+    }
+    
+    detectDeviceType();
+    window.addEventListener('resize', detectDeviceType);
+
     // --- DOM Elements ---
     const lobbyContainer = document.getElementById('lobby-container');
     const createGameBtn = document.getElementById('create-game-btn');

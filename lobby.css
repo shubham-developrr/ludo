@@ -9,73 +9,87 @@
     align-items: center;
     backdrop-filter: blur(10px);
     z-index: 200;
+    padding: var(--padding-small, 10px);
+    box-sizing: border-box;
 }
 
 .lobby-box {
     background: rgba(30, 30, 40, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
-    padding: 40px;
+    padding: clamp(20px, 5vw, 40px);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: var(--cyber-white);
+    width: 100%;
+    max-width: clamp(320px, 90vw, 600px);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .lobby-box h2 {
-    font-size: 2.5em;
-    margin-bottom: 30px;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    margin-bottom: clamp(15px, 4vw, 30px);
     text-shadow: 0 0 10px var(--blue);
 }
 
 /* Mode Selection */
 .mode-selection {
     display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
+    gap: clamp(5px, 2vw, 10px);
+    margin-bottom: clamp(15px, 4vw, 30px);
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .mode-btn {
-    padding: 12px 24px;
+    padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 24px);
     border: 2px solid var(--light-gray);
     background: transparent;
     color: var(--cyber-white);
     border-radius: 10px;
     cursor: pointer;
     font-family: 'Oxanium', sans-serif;
-    font-size: 1em;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    min-width: 120px;
+    flex: 1;
+    max-width: 200px;
 }
 
 .mode-btn:hover, .mode-btn.active {
     border-color: var(--blue);
     box-shadow: 0 0 10px var(--blue);
     background: rgba(0, 255, 255, 0.1);
+    transform: scale(1.02);
 }
 
 /* Local Game Setup */
 .local-game-setup {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: clamp(15px, 3vw, 20px);
     align-items: center;
 }
 
 .local-game-setup label {
     color: var(--cyber-white);
-    font-size: 1.2em;
+    font-size: clamp(1rem, 3vw, 1.2rem);
     font-weight: bold;
 }
 
 .local-game-setup select {
-    padding: 10px;
+    padding: clamp(8px, 2vw, 10px);
     border: 2px solid var(--light-gray);
     background: var(--medium-bg);
     color: var(--cyber-white);
     border-radius: 8px;
     font-family: 'Oxanium', sans-serif;
-    font-size: 1em;
-    min-width: 150px;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    min-width: clamp(120px, 30vw, 150px);
+    touch-action: manipulation;
 }
 
 .local-game-setup select:focus {
@@ -87,26 +101,28 @@
 #player-type-selection {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: clamp(10px, 2.5vw, 15px);
     width: 100%;
-    max-width: 300px;
+    max-width: clamp(280px, 80vw, 350px);
 }
 
 .player-config {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
+    padding: clamp(8px, 2vw, 10px);
     border: 1px solid var(--light-gray);
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.3);
+    gap: 10px;
 }
 
 .player-color {
     font-weight: bold;
-    font-size: 1.1em;
-    min-width: 80px;
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
+    min-width: clamp(60px, 15vw, 80px);
     text-align: left;
+    flex-shrink: 0;
 }
 
 .player-color.red { color: var(--red); }
@@ -115,13 +131,21 @@
 .player-color.blue { color: var(--blue); }
 
 .player-type {
-    min-width: 100px;
+    min-width: clamp(80px, 20vw, 100px);
+    padding: 5px 8px;
+    border: 1px solid var(--light-gray);
+    background: var(--medium-bg);
+    color: var(--cyber-white);
+    border-radius: 5px;
+    font-family: 'Oxanium', sans-serif;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
+    touch-action: manipulation;
 }
 
 .lobby-btn {
     width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
+    padding: clamp(12px, 3vw, 15px);
+    font-size: clamp(1rem, 3vw, 1.2rem);
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
     font-weight: 700;
@@ -131,13 +155,16 @@
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 10px;
+    margin-top: clamp(8px, 2vw, 10px);
+    touch-action: manipulation;
+    min-height: 44px; /* Minimum touch target size */
 }
 
 .lobby-btn:hover:not(:disabled) {
     background: var(--blue);
     color: var(--dark-bg);
     box-shadow: 0 0 15px var(--blue);
+    transform: scale(1.02);
 }
 
 .lobby-btn:disabled {
@@ -146,14 +173,15 @@
 }
 
 .join-game-section {
-    margin-top: 20px;
+    margin-top: clamp(15px, 3vw, 20px);
     display: flex;
     flex-direction: column;
+    gap: clamp(10px, 2vw, 15px);
 }
 
 #room-code-input {
-    padding: 15px;
-    font-size: 1.2em;
+    padding: clamp(12px, 3vw, 15px);
+    font-size: clamp(1rem, 3vw, 1.2rem);
     text-align: center;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--light-gray);
@@ -162,6 +190,10 @@
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.2em;
+    width: 100%;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    min-height: 44px; /* Minimum touch target size */
 }
 
 #room-code-input::placeholder {
@@ -170,57 +202,74 @@
     letter-spacing: normal;
 }
 
+#room-code-input:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 10px var(--blue);
+}
+
 .error-message {
     color: var(--red);
-    margin-top: 15px;
-    height: 20px;
+    margin-top: clamp(10px, 2vw, 15px);
+    min-height: 20px;
     font-weight: 700;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 #room-info {
-    margin-top: 20px;
+    margin-top: clamp(15px, 3vw, 20px);
     text-align: left;
 }
 
 #room-info p {
-    font-size: 1.2em;
-    margin-bottom: 15px;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    margin-bottom: clamp(10px, 2.5vw, 15px);
 }
 
 #room-code-display {
     color: var(--yellow);
     background: rgba(0,0,0,0.3);
-    padding: 5px 10px;
+    padding: clamp(5px, 1vw, 5px) clamp(8px, 2vw, 10px);
     border-radius: 5px;
     user-select: all;
+    font-size: clamp(1rem, 3vw, 1.1rem);
+    word-break: break-all;
 }
 
 #player-list {
-    min-height: 120px;
+    min-height: clamp(80px, 15vh, 120px);
     background: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 20px;
+    padding: clamp(8px, 2vw, 10px);
+    margin-bottom: clamp(15px, 3vw, 20px);
+    max-height: 30vh;
+    overflow-y: auto;
 }
 
 .player-list-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px;
+    padding: clamp(8px, 2vw, 10px);
     border-radius: 5px;
     margin-bottom: 5px;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .player-color-dot {
-    width: 20px;
-    height: 20px;
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
     border-radius: 50%;
-    margin-right: 15px;
+    margin-right: clamp(10px, 2vw, 15px);
+    flex-shrink: 0;
 }
 
 .player-name {
     flex-grow: 1;
+    min-width: 0;
+    word-break: break-word;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 .kick-btn {
@@ -228,11 +277,216 @@
     border: none;
     color: var(--red);
     cursor: pointer;
-    font-size: 1.2em;
+    font-size: clamp(1rem, 3vw, 1.2rem);
     opacity: 0.7;
     transition: opacity 0.3s;
+    touch-action: manipulation;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .kick-btn:hover {
     opacity: 1;
+    transform: scale(1.1);
+}
+
+/* RESPONSIVE MEDIA QUERIES FOR LOBBY */
+
+/* Mobile devices (up to 767px) */
+@media screen and (max-width: 767px) {
+    #lobby-container {
+        padding: 10px;
+    }
+    
+    .lobby-box {
+        padding: 20px 15px;
+        border-radius: 15px;
+        max-width: 95vw;
+    }
+    
+    .lobby-box h2 {
+        font-size: clamp(1.5rem, 6vw, 2rem);
+        margin-bottom: 20px;
+    }
+    
+    .mode-selection {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .mode-btn {
+        width: 100%;
+        max-width: none;
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+    
+    #player-type-selection {
+        max-width: 100%;
+    }
+    
+    .player-config {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .player-color {
+        text-align: center;
+        min-width: auto;
+    }
+    
+    .player-type {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .join-game-section {
+        gap: 15px;
+    }
+    
+    #room-code-input {
+        font-size: 1.1rem;
+        padding: 15px;
+    }
+    
+    .player-list-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .player-color-dot {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+}
+
+/* Small mobile devices (up to 480px) */
+@media screen and (max-width: 480px) {
+    .lobby-box {
+        padding: 15px 10px;
+        max-width: 98vw;
+        max-height: 95vh;
+    }
+    
+    .lobby-box h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+    
+    .mode-btn {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .local-game-setup {
+        gap: 15px;
+    }
+    
+    .local-game-setup label {
+        font-size: 1rem;
+    }
+    
+    .local-game-setup select {
+        padding: 8px;
+        font-size: 0.9rem;
+        min-width: 100px;
+    }
+    
+    #player-type-selection {
+        gap: 10px;
+    }
+    
+    .lobby-btn {
+        padding: 12px;
+        font-size: 1rem;
+    }
+    
+    #room-code-input {
+        font-size: 1rem;
+        padding: 12px;
+    }
+    
+    .error-message {
+        font-size: 0.9rem;
+    }
+    
+    #player-list {
+        min-height: 60px;
+        padding: 8px;
+    }
+}
+
+/* Landscape orientation for mobile */
+@media screen and (max-width: 767px) and (orientation: landscape) {
+    .lobby-box {
+        max-height: 95vh;
+        overflow-y: auto;
+        padding: 15px;
+    }
+    
+    .lobby-box h2 {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+    
+    .mode-selection {
+        flex-direction: row;
+        margin-bottom: 15px;
+    }
+    
+    .local-game-setup {
+        gap: 12px;
+    }
+    
+    #player-type-selection {
+        gap: 8px;
+    }
+    
+    .player-config {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .player-color {
+        text-align: left;
+        min-width: 60px;
+    }
+    
+    #player-list {
+        min-height: 60px;
+        max-height: 25vh;
+    }
+}
+
+/* Tablet portrait (768px to 1023px) */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+    .lobby-box {
+        max-width: 80vw;
+        padding: 30px;
+    }
+    
+    .mode-selection {
+        gap: 15px;
+    }
+    
+    .mode-btn {
+        min-width: 140px;
+        padding: 10px 20px;
+    }
+    
+    #player-type-selection {
+        max-width: 400px;
+    }
+    
+    .join-game-section {
+        gap: 15px;
+    }
 }

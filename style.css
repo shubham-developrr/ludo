@@ -1,22 +1,44 @@
 /* Base variables and structure */
 :root {
-    --board-size: 90vmin;
+    --board-size: min(90vmin, 800px);
     --cell-size: calc(var(--board-size) / 15);
     --token-size: calc(var(--cell-size) * 0.75);
     --cyber-white: #f0f0f0;
+    
+    /* Responsive font scaling */
+    --base-font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    --heading-font-size: clamp(1.5rem, 4vw, 2.5rem);
+    --large-text: clamp(1.2rem, 3vw, 1.5rem);
+    --small-text: clamp(0.8rem, 2vw, 0.9rem);
+    
+    /* Responsive spacing */
+    --gap-small: clamp(8px, 2vw, 16px);
+    --gap-medium: clamp(16px, 3vw, 24px);
+    --gap-large: clamp(24px, 4vw, 40px);
+    --padding-small: clamp(8px, 2vw, 12px);
+    --padding-medium: clamp(16px, 3vw, 24px);
+    --padding-large: clamp(24px, 4vw, 40px);
+    
+    /* UI element sizes */
+    --ui-btn-size: clamp(40px, 8vw, 56px);
+    --dice-size: clamp(50px, 10vw, 70px);
 }
+
 body {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     font-family: 'Oxanium', sans-serif;
+    font-size: var(--base-font-size);
     margin: 0;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--gap-medium);
     transition: background-color 0.5s ease;
     background-size: cover;
     background-position: center;
+    padding: var(--padding-small);
+    box-sizing: border-box;
 }
 
 /* THEME DEFINITIONS */
@@ -88,34 +110,38 @@ body.theme-space {
 /* --- UI Controls --- */
 .ui-controls-top-right {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: var(--padding-small);
+    right: var(--padding-small);
     display: flex;
-    gap: 10px;
+    gap: var(--gap-small);
     z-index: 200;
+    flex-wrap: wrap;
 }
 .ui-btn {
     background: rgba(42, 42, 42, 0.8);
     border: 1px solid var(--light-gray);
     color: var(--cyber-white);
-    width: 48px;
-    height: 48px;
+    width: var(--ui-btn-size);
+    height: var(--ui-btn-size);
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: all 0.3s ease;
+    touch-action: manipulation;
 }
 .ui-btn:hover {
     background: var(--medium-bg);
     border-color: var(--cyber-white);
+    transform: scale(1.05);
 }
 .theme-selector {
     position: relative;
 }
 .theme-menu {
     position: absolute;
-    top: 55px;
+    top: calc(var(--ui-btn-size) + 5px);
     right: 0;
     background: var(--medium-bg);
     border: 1px solid var(--light-gray);
@@ -123,7 +149,8 @@ body.theme-space {
     display: flex;
     flex-direction: column;
     padding: 5px;
-    width: 180px;
+    width: clamp(150px, 30vw, 200px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 .theme-menu.hidden {
     display: none;
@@ -132,12 +159,14 @@ body.theme-space {
     background: none;
     border: none;
     color: var(--cyber-white);
-    padding: 10px;
+    padding: var(--padding-small);
     text-align: left;
     cursor: pointer;
     font-family: 'Oxanium', sans-serif;
-    font-size: 1em;
+    font-size: var(--small-text);
     border-radius: 4px;
+    transition: background 0.3s ease;
+    touch-action: manipulation;
 }
 .theme-option:hover {
     background: var(--light-gray);
@@ -151,7 +180,10 @@ body.theme-space {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: var(--gap-medium);
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 #ludo-board {
     width: var(--board-size);
@@ -163,7 +195,10 @@ body.theme-space {
     grid-template-columns: repeat(15, 1fr);
     grid-template-rows: repeat(15, 1fr);
     border-radius: 10px;
-    padding: 10px;
+    padding: var(--padding-small);
+    margin: 0 auto;
+    max-width: calc(100vw - var(--padding-medium));
+    max-height: calc(100vh - 200px);
 }
 .cell {
     width: 100%;
@@ -188,8 +223,8 @@ body.theme-space {
 .home-area {
     background-color: rgba(0,0,0,0.3);
     border-radius: 50%;
-    width: 180px;
-    height: 180px;
+    width: clamp(120px, 20vw, 200px);
+    height: clamp(120px, 20vw, 200px);
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
@@ -273,27 +308,33 @@ body.theme-space {
 .controls {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: center;
+    gap: var(--gap-medium);
     background-color: transparent;
-    padding: 15px 25px;
+    padding: var(--padding-medium);
     border-radius: 10px;
     border: 1px solid var(--light-gray);
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 600px;
+    box-sizing: border-box;
 }
 #dice {
-    width: 60px;
-    height: 60px;
+    width: var(--dice-size);
+    height: var(--dice-size);
     background-color: var(--medium-bg);
     border-radius: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 2.5em;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
     font-weight: bold;
     color: var(--cyber-white);
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 2px solid var(--cyber-white);
     text-shadow: 0 0 8px var(--cyber-white);
+    touch-action: manipulation;
 }
 #dice:hover {
     transform: scale(1.05);
@@ -308,11 +349,12 @@ body.theme-space {
 }
 #game-status {
     color: var(--cyber-white);
-    font-size: 1.5em;
+    font-size: var(--large-text);
     font-weight: 700;
-    min-width: 250px;
+    min-width: 200px;
     text-align: center;
     text-transform: uppercase;
+    flex: 1;
 }
 .winner-overlay {
     position: fixed;
@@ -329,20 +371,23 @@ body.theme-space {
 }
 .winner-box {
     background-color: var(--medium-bg);
-    padding: 40px;
+    padding: var(--padding-large);
     border-radius: 20px;
     text-align: center;
     border: 2px solid;
     box-shadow: 0 0 20px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 .winner-box h2 {
-    font-size: 3em;
-    margin: 0 0 20px 0;
+    font-size: var(--heading-font-size);
+    margin: 0 0 var(--gap-medium) 0;
     text-transform: uppercase;
 }
 #restart-btn {
-    padding: 15px 30px;
-    font-size: 1.2em;
+    padding: var(--padding-medium) var(--padding-large);
+    font-size: var(--large-text);
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -351,15 +396,16 @@ body.theme-space {
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
     font-weight: 700;
+    touch-action: manipulation;
 }
 
 /* --- Chat Box --- */
 #chat-container {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 300px;
-    height: 250px;
+    position: fixed;
+    bottom: var(--padding-small);
+    right: var(--padding-small);
+    width: clamp(250px, 40vw, 350px);
+    height: clamp(200px, 30vh, 300px);
     background: rgba(30, 30, 40, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
@@ -368,18 +414,33 @@ body.theme-space {
     overflow: hidden;
     z-index: 50;
     backdrop-filter: blur(5px);
+    box-sizing: border-box;
 }
 #chat-messages {
     list-style-type: none;
     margin: 0;
-    padding: 10px;
+    padding: var(--padding-small);
     flex-grow: 1;
     overflow-y: auto;
-    font-size: 0.9em;
+    font-size: var(--small-text);
+    scrollbar-width: thin;
+    scrollbar-color: var(--light-gray) transparent;
+}
+#chat-messages::-webkit-scrollbar {
+    width: 4px;
+}
+#chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+#chat-messages::-webkit-scrollbar-thumb {
+    background: var(--light-gray);
+    border-radius: 2px;
 }
 #chat-messages li {
     padding: 5px 0;
     color: var(--cyber-white);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 #chat-messages li .chat-player-color {
     font-weight: 700;
@@ -392,6 +453,7 @@ body.theme-space {
     display: flex;
     padding: 5px;
     background: rgba(0, 0, 0, 0.3);
+    gap: 5px;
 }
 #chat-input {
     flex-grow: 1;
@@ -399,6 +461,7 @@ body.theme-space {
     border: none;
     color: var(--cyber-white);
     padding: 8px;
+    font-size: var(--small-text);
 }
 #chat-input:focus {
     outline: none;
@@ -406,8 +469,443 @@ body.theme-space {
 #chat-form button {
     background: var(--blue);
     border: none;
-    padding: 0 1rem;
+    padding: 8px 12px;
     border-radius: 5px;
     color: var(--dark-bg);
     cursor: pointer;
+    font-size: var(--small-text);
+    touch-action: manipulation;
+}
+
+/* RESPONSIVE MEDIA QUERIES */
+
+/* Ultra-wide screens (1440px+) */
+@media screen and (min-width: 1440px) {
+    :root {
+        --board-size: min(85vmin, 900px);
+        --gap-large: 48px;
+        --padding-large: 48px;
+    }
+    
+    .game-container {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 60px;
+        max-width: 1400px;
+    }
+    
+    .controls {
+        flex-direction: column;
+        width: auto;
+        min-width: 200px;
+    }
+    
+    #chat-container {
+        position: relative;
+        bottom: auto;
+        right: auto;
+        width: 300px;
+        height: 400px;
+    }
+}
+
+/* Large desktop screens (1024px to 1439px) */
+@media screen and (min-width: 1024px) and (max-width: 1439px) {
+    :root {
+        --board-size: min(80vmin, 700px);
+    }
+    
+    .ui-controls-top-right {
+        top: 30px;
+        right: 30px;
+        gap: 15px;
+    }
+}
+
+/* Tablets (768px to 1023px) */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+    :root {
+        --board-size: min(85vmin, 600px);
+        --ui-btn-size: clamp(44px, 8vw, 52px);
+    }
+    
+    .game-container {
+        gap: 20px;
+        padding: 0 20px;
+    }
+    
+    .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+    }
+    
+    #chat-container {
+        width: clamp(280px, 45vw, 320px);
+        height: clamp(220px, 35vh, 280px);
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .theme-menu {
+        width: clamp(160px, 35vw, 220px);
+    }
+}
+
+/* Mobile devices (up to 767px) */
+@media screen and (max-width: 767px) {
+    :root {
+        --board-size: min(95vmin, 95vw);
+        --ui-btn-size: 44px;
+        --dice-size: clamp(45px, 12vw, 60px);
+        --gap-small: 8px;
+        --gap-medium: 12px;
+        --padding-small: 8px;
+        --padding-medium: 12px;
+    }
+    
+    body {
+        padding: 8px;
+        gap: 12px;
+    }
+    
+    .game-container {
+        gap: 15px;
+        padding: 0;
+    }
+    
+    #ludo-board {
+        padding: 8px;
+        max-width: 95vw;
+        max-height: calc(100vh - 160px);
+    }
+    
+    .controls {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+        width: 95%;
+    }
+    
+    #game-status {
+        font-size: clamp(1rem, 4vw, 1.3rem);
+        min-width: auto;
+        text-align: center;
+    }
+    
+    .ui-controls-top-right {
+        top: 10px;
+        right: 10px;
+        gap: 8px;
+        flex-direction: column;
+    }
+    
+    .theme-menu {
+        right: -10px;
+        width: 170px;
+        top: calc(var(--ui-btn-size) + 8px);
+    }
+    
+    #chat-container {
+        width: calc(100vw - 20px);
+        height: 200px;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .home-area {
+        width: clamp(100px, 18vw, 140px);
+        height: clamp(100px, 18vw, 140px);
+    }
+    
+    .winner-box {
+        padding: 20px;
+        margin: 10px;
+        max-width: calc(100vw - 20px);
+    }
+    
+    .winner-box h2 {
+        font-size: clamp(1.5rem, 6vw, 2rem);
+    }
+}
+
+/* Small mobile devices (up to 480px) */
+@media screen and (max-width: 480px) {
+    :root {
+        --board-size: min(98vmin, 98vw);
+        --ui-btn-size: 40px;
+        --dice-size: 50px;
+    }
+    
+    .controls {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    #ludo-board {
+        padding: 5px;
+        max-height: calc(100vh - 140px);
+    }
+    
+    .ui-controls-top-right {
+        top: 5px;
+        right: 5px;
+        gap: 5px;
+    }
+    
+    #chat-container {
+        width: calc(100vw - 10px);
+        height: 180px;
+        bottom: 5px;
+        right: 5px;
+        left: 5px;
+    }
+    
+    .theme-menu {
+        width: 150px;
+        right: -5px;
+    }
+    
+    .home-area {
+        width: clamp(80px, 16vw, 120px);
+        height: clamp(80px, 16vw, 120px);
+    }
+}
+
+/* Landscape orientation adjustments for mobile */
+@media screen and (max-width: 767px) and (orientation: landscape) {
+    :root {
+        --board-size: min(80vh, 90vw);
+    }
+    
+    body {
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        gap: 20px;
+        padding: 5px;
+    }
+    
+    .game-container {
+        flex-direction: row;
+        gap: 20px;
+        align-items: center;
+    }
+    
+    #ludo-board {
+        max-height: 90vh;
+        max-width: 70vw;
+    }
+    
+    .controls {
+        flex-direction: column;
+        width: auto;
+        min-width: 150px;
+        padding: 10px;
+    }
+    
+    #chat-container {
+        width: 250px;
+        height: calc(100vh - 20px);
+        right: 10px;
+        top: 10px;
+        bottom: auto;
+        left: auto;
+    }
+    
+    .ui-controls-top-right {
+        left: 10px;
+        right: auto;
+        flex-direction: column;
+    }
+    
+    .theme-menu {
+        left: calc(var(--ui-btn-size) + 8px);
+        right: auto;
+        top: 0;
+    }
+}
+
+/* High DPI / Retina displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .token {
+        border-width: 1px;
+    }
+    
+    #ludo-board {
+        border-width: 1px;
+    }
+    
+    .cell {
+        border-radius: 2px;
+    }
+}
+
+/* Accessibility: Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .token.movable {
+        animation: none;
+        box-shadow: 0 0 15px 5px var(--cyber-white);
+    }
+}
+
+/* Touch interaction styles */
+.touch-device .ui-btn:active,
+.touch-device .lobby-btn:active,
+.touch-device .mode-btn:active,
+.touch-device #dice:active {
+    transform: scale(0.95);
+}
+
+.touch-device .token:active {
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+.touched {
+    opacity: 0.8;
+}
+
+/* Device-specific styles */
+.mobile #chat-container {
+    transition: transform 0.3s ease;
+}
+
+.mobile #chat-container.hidden {
+    transform: translateY(100%);
+}
+
+.tablet .controls {
+    max-width: 80%;
+}
+
+.desktop .game-container {
+    max-width: 1200px;
+}
+
+/* Viewport height support */
+body {
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+    .ui-controls-top-right {
+        top: max(var(--padding-small), env(safe-area-inset-top));
+        right: max(var(--padding-small), env(safe-area-inset-right));
+    }
+    
+    #chat-container {
+        bottom: max(var(--padding-small), env(safe-area-inset-bottom));
+        right: max(var(--padding-small), env(safe-area-inset-right));
+    }
+    
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}
+
+/* Better scrollbars for all elements */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--light-gray) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--light-gray);
+    border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--cyber-white);
+}
+
+/* Focus styles for accessibility */
+.ui-btn:focus,
+.lobby-btn:focus,
+.mode-btn:focus,
+#dice:focus,
+.token:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
+input:focus,
+select:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: 1px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --dark-bg: #000000;
+        --medium-bg: #ffffff;
+        --light-gray: #000000;
+        --cyber-white: #000000;
+    }
+    
+    body {
+        background-color: #ffffff;
+        color: #000000;
+    }
+    
+    .token {
+        border-width: 3px;
+    }
+}
+
+/* Reduced transparency for better readability */
+@media (prefers-reduced-transparency: reduce) {
+    .lobby-box,
+    #chat-container {
+        background: var(--medium-bg);
+        backdrop-filter: none;
+    }
+    
+    .ui-btn {
+        background: var(--medium-bg);
+    }
+}
+
+/* Print styles */
+@media print {
+    .ui-controls-top-right,
+    #chat-container,
+    .controls {
+        display: none !important;
+    }
+    
+    .game-container {
+        page-break-inside: avoid;
+    }
+    
+    #ludo-board {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
 }
