@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHostId = null;
     let localGame = null;
     let isLocalMode = false;
-    const isTouchDevice = 'ontouchstart' in window;
 
     // ################# LOBBY LOGIC #################
 
@@ -259,17 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tokenEl.classList.add('token', `${color}-token`);
                 tokenEl.id = `${color}-token-${i}`;
 
-                const eventType = isTouchDevice ? 'touchstart' : 'click';
-                tokenEl.addEventListener(eventType, () => {
-                    if (tokenEl.classList.contains('movable')) {
-                        if (isLocalMode && localGame) {
-                            localGame.moveToken(color, i);
-                        } else {
-                            socket.emit('moveToken', { color: color, tokenId: i });
-                        }
-                    }
-                });
-
                 tokenElements[color].push(tokenEl);
                 
                 // Place token in its designated yard spot
@@ -322,8 +310,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // 3. Tappable Cells - JS
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
         document.querySelectorAll('.current-player').forEach(el => el.classList.remove('current-player'));
+        document.querySelectorAll('.tappable').forEach(el => {
+            el.classList.remove('tappable');
+            el.onclick = null; // Remove old listener
+        });
         
         // Add current-player class to current player's tokens for better layering on safe spots
         if (tokenElements[currentPlayerColor]) {
@@ -332,14 +325,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        if (movableTokens && (!isLocalGame || currentPlayerType === 'human')) {
-            if (!isLocalGame && currentPlayerColor === myPlayerInfo.color) {
+        if (movableTokens && (!isLocalMode || currentPlayerType === 'human')) {
+            const isMyTurn = !isLocalGame && currentPlayerColor === myPlayerInfo.color;
+            const isHumanTurnInLocal = isLocalGame && currentPlayerType === 'human';
+
+            if (isMyTurn || isHumanTurnInLocal) {
                 movableTokens.forEach(t => {
-                    tokenElements[t.color][t.id].classList.add('movable');
-                });
-            } else if (isLocalGame && currentPlayerType === 'human') {
-                movableTokens.forEach(t => {
-                    tokenElements[t.color][t.id].classList.add('movable');
+                    const tokenEl = tokenElements[t.color][t.id];
+                    tokenEl.classList.add('movable');
+                    const parentCell = tokenEl.parentElement;
+                    if (parentCell) {
+                        parentCell.classList.add('tappable');
+                        // 3. Tappable Cells - JS
+                        parentCell.onclick = () => {
+                            if (isLocalMode && localGame) {
+                                localGame.moveToken(t.color, t.id);
+                            } else {
+                                socket.emit('moveToken', { color: t.color, tokenId: t.id });
+                            }
+                        };
+                    }
                 });
             }
         }
@@ -359,12 +364,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPlayerInfo(players, currentPlayerColor);
     }
 
+    // 2. Layout Adaptations - JS
     function renderPlayerInfo(players, currentPlayerColor) {
-        const playerInfoContainer = document.querySelector('.player-info-container');
-        if (!playerInfoContainer) return;
+        const leftContainer = document.querySelector('.player-info-container.left');
+        const rightContainer = document.querySelector('.player-info-container.right');
+        if (!leftContainer || !rightContainer) return;
 
-        playerInfoContainer.innerHTML = '';
-        Object.keys(players).forEach(color => {
+        leftContainer.innerHTML = '';
+        rightContainer.innerHTML = '';
+
+        const playerColors = Object.keys(players);
+        playerColors.forEach((color, index) => {
             const playerEl = document.createElement('div');
             playerEl.classList.add('player-info');
             if (color === currentPlayerColor) {
@@ -374,37 +384,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="player-color-indicator" style="background-color: ${staticColors[color]}"></div>
                 <div class="player-name">${color}</div>
             `;
-            playerInfoContainer.appendChild(playerEl);
+
+            if (index < 2) {
+                leftContainer.appendChild(playerEl);
+            } else {
+                rightContainer.appendChild(playerEl);
+            }
         });
     }
 
     function setupGameListeners() {
-        // 4. Mobile-Specific Enhancements - JS
-        // Disable pinch and double-tap zoom on the board
-        board.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        const eventType = isTouchDevice ? 'touchstart' : 'click';
-        dice.addEventListener(eventType, () => {
-            if (isLocalMode && localGame) {
-                const gameState = localGame.getState();
-                if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
-                    localGame.rollDice();
-                }
-            } else if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
-                socket.emit('rollDice');
-            }
-        });
-        restartBtn.addEventListener('click', () => window.location.reload());
-
-        // 4. Mobile-Specific Enhancements - JS
-        // Tap anywhere to roll dice
+        // 3. Mobile-Specific Enhancements - JS (Tap anywhere to roll dice)
         gameContainer.addEventListener('click', (e) => {
             // Avoid triggering on UI elements
-            if (e.target.closest('.token, .ui-btn, button, input, a')) {
+            if (e.target.closest('.token, .tappable, .ui-btn, button, input, a')) {
                 return;
             }
 
@@ -417,6 +410,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 socket.emit('rollDice');
             }
         });
+
+        dice.addEventListener('click', () => {
+            if (isLocalMode && localGame) {
+                const gameState = localGame.getState();
+                if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
+                    localGame.rollDice();
+                }
+            } else if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
+                socket.emit('rollDice');
+            }
+        });
+        restartBtn.addEventListener('click', () => window.location.reload());
     }
 
     socket.on('gameStarted', ({ players }) => {
@@ -530,50 +535,6 @@ document.addEventListener('DOMContentLoaded', () => {
     music.muted = savedMuted;
     updateMuteButton();
     applyTheme(savedTheme);
-
-
-    // 4. Mobile-Specific Enhancements - JS
-    // Show rotate warning
-    function checkOrientation() {
-        const rotateWarning = document.getElementById('rotate-warning');
-        if (window.innerHeight > window.innerWidth && screen.width < 768) {
-            rotateWarning.style.display = 'flex';
-        } else {
-            rotateWarning.style.display = 'none';
-        }
-
-        // 5. Performance and Conditional Loading - JS
-        // Add no-animations class on smaller screens
-        if (screen.width < 768) {
-            document.body.classList.add('no-animations');
-        } else {
-            document.body.classList.remove('no-animations');
-        }
-    }
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('load', checkOrientation);
-
-    // 4. Mobile-Specific Enhancements - JS
-    // Handle virtual keyboard
-    if (window.visualViewport) {
-        let initialHeight = window.visualViewport.height;
-        window.visualViewport.addEventListener('resize', () => {
-            const isKeyboardOpen = window.visualViewport.height < initialHeight - 150; // 150px threshold
-            document.body.classList.toggle('keyboard-open', isKeyboardOpen);
-        });
-    }
-
-
-    // 6. Advanced CSS & JS - JS
-    // Dynamic scaling class
-    function updateGameScale() {
-        const scale = Math.min(window.innerWidth / 1200, 1);
-        document.documentElement.style.setProperty('--game-scale', scale);
-    }
-
-    window.addEventListener('resize', updateGameScale);
-    window.addEventListener('load', updateGameScale);
 
 
     // --- INITIALIZATION ---

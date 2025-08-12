@@ -1,4 +1,5 @@
 import asyncio
+import re
 from playwright.async_api import async_playwright, expect
 
 async def main():
@@ -44,7 +45,7 @@ async def main():
         # 6. Wait for game to load and take in-game screenshot
         await expect(page1.locator("#ludo-board")).to_be_visible()
         await expect(page2.locator("#ludo-board")).to_be_visible()
-        await expect(page1.get_by_text("red's turn")).to_be_visible()
+        await expect(page1.locator(".player-info.current .player-name:has-text('red')")).to_be_visible()
         print("Game started.")
 
         # 7. Player 2 sends a chat message

@@ -14,8 +14,8 @@
 .lobby-box {
     background: rgba(30, 30, 40, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 1.25rem;
-    padding: 2.5rem;
+    border-radius: 20px;
+    padding: 40px;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: var(--cyber-white);
@@ -23,24 +23,24 @@
 
 .lobby-box h2 {
     font-size: 2.5em;
-    margin-bottom: 1.875rem;
-    text-shadow: 0 0 0.625rem var(--blue);
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px var(--blue);
 }
 
 /* Mode Selection */
 .mode-selection {
     display: flex;
-    gap: 0.625rem;
-    margin-bottom: 1.875rem;
+    gap: 10px;
+    margin-bottom: 30px;
     justify-content: center;
 }
 
 .mode-btn {
-    padding: 0.75rem 1.5rem;
+    padding: 12px 24px;
     border: 2px solid var(--light-gray);
     background: transparent;
     color: var(--cyber-white);
-    border-radius: 0.625rem;
+    border-radius: 10px;
     cursor: pointer;
     font-family: 'Oxanium', sans-serif;
     font-size: 1em;
@@ -57,7 +57,7 @@
 .local-game-setup {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 20px;
     align-items: center;
 }
 
@@ -68,44 +68,44 @@
 }
 
 .local-game-setup select {
-    padding: 0.625rem;
+    padding: 10px;
     border: 2px solid var(--light-gray);
     background: var(--medium-bg);
     color: var(--cyber-white);
-    border-radius: 0.5rem;
+    border-radius: 8px;
     font-family: 'Oxanium', sans-serif;
     font-size: 1em;
-    min-width: 9.375rem;
+    min-width: 150px;
 }
 
 .local-game-setup select:focus {
     outline: none;
     border-color: var(--blue);
-    box-shadow: 0 0 0.3125rem var(--blue);
+    box-shadow: 0 0 5px var(--blue);
 }
 
 #player-type-selection {
     display: flex;
     flex-direction: column;
-    gap: 0.9375rem;
+    gap: 15px;
     width: 100%;
-    max-width: 18.75rem;
+    max-width: 300px;
 }
 
 .player-config {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.625rem;
+    padding: 10px;
     border: 1px solid var(--light-gray);
-    border-radius: 0.5rem;
+    border-radius: 8px;
     background: rgba(0, 0, 0, 0.3);
 }
 
 .player-color {
     font-weight: bold;
     font-size: 1.1em;
-    min-width: 5rem;
+    min-width: 80px;
     text-align: left;
 }
 
@@ -115,12 +115,12 @@
 .player-color.blue { color: var(--blue); }
 
 .player-type {
-    min-width: 6.25rem;
+    min-width: 100px;
 }
 
 .lobby-btn {
     width: 100%;
-    padding: 1rem;
+    padding: 15px;
     font-size: 1.2em;
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
@@ -128,10 +128,10 @@
     border: 1px solid var(--blue);
     background: transparent;
     color: var(--blue);
-    border-radius: 0.625rem;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 0.625rem;
+    margin-top: 10px;
 }
 
 .lobby-btn:hover:not(:disabled) {
@@ -146,18 +146,18 @@
 }
 
 .join-game-section {
-    margin-top: 1.25rem;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
 }
 
 #room-code-input {
-    padding: 1rem;
+    padding: 15px;
     font-size: 1.2em;
     text-align: center;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--light-gray);
-    border-radius: 0.625rem;
+    border-radius: 10px;
     color: var(--cyber-white);
     font-family: 'Oxanium', sans-serif;
     text-transform: uppercase;
@@ -172,51 +172,51 @@
 
 .error-message {
     color: var(--red);
-    margin-top: 1rem;
-    height: 1.25rem;
+    margin-top: 15px;
+    height: 20px;
     font-weight: 700;
 }
 
 #room-info {
-    margin-top: 1.25rem;
+    margin-top: 20px;
     text-align: left;
 }
 
 #room-info p {
     font-size: 1.2em;
-    margin-bottom: 1rem;
+    margin-bottom: 15px;
 }
 
 #room-code-display {
     color: var(--yellow);
     background: rgba(0,0,0,0.3);
-    padding: 0.3125rem 0.625rem;
-    border-radius: 0.3125rem;
+    padding: 5px 10px;
+    border-radius: 5px;
     user-select: all;
 }
 
 #player-list {
-    min-height: 7.5rem;
+    min-height: 120px;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 0.625rem;
-    padding: 0.625rem;
-    margin-bottom: 1.25rem;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
 }
 
 .player-list-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.625rem;
-    border-radius: 0.3125rem;
-    margin-bottom: 0.3125rem;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
 }
 
 .player-color-dot {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    margin-right: 1rem;
+    margin-right: 15px;
 }
 
 .player-name {

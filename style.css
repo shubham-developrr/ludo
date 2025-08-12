@@ -13,7 +13,7 @@ body {
     font-family: 'Oxanium', sans-serif;
     margin: 0;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 20px;
     transition: background-color 0.5s ease;
     background-size: cover;
     background-position: center;
@@ -34,6 +34,7 @@ body, body.theme-cyberpunk {
     --medium-bg: #2a2a2a;
     --light-gray: #555;
     background-color: var(--dark-bg);
+    background-image: url('assets/images/cyberpunk.gif');
 }
 /* Ancient Egypt Theme */
 body.theme-egypt {
@@ -49,6 +50,7 @@ body.theme-egypt {
     --medium-bg: #d3b88c;
     --light-gray: #a18f6f;
     background-color: #f7e7c1; /* Sandy color */
+    background-image: url('assets/images/egypt.gif');
 }
 /* Jurassic Jungle Theme */
 body.theme-jurassic {
@@ -64,6 +66,7 @@ body.theme-jurassic {
     --medium-bg: #80a18f;
     --light-gray: #6b8f6f;
     background-color: #1e3a2a; /* Dark jungle green */
+    background-image: url('assets/images/jurassic.gif');
 }
 /* Outer Space Theme */
 body.theme-space {
@@ -79,23 +82,24 @@ body.theme-space {
     --medium-bg: #1f1f3f;
     --light-gray: #4f4f6f;
     background-color: #000010; /* Deep space blue */
+    background-image: url('assets/images/space.gif');
 }
 
 /* --- UI Controls --- */
 .ui-controls-top-right {
     position: fixed;
-    top: 1.25rem;
-    right: 1.25rem;
+    top: 20px;
+    right: 20px;
     display: flex;
-    gap: 0.625rem;
+    gap: 10px;
     z-index: 200;
 }
 .ui-btn {
     background: rgba(42, 42, 42, 0.8);
     border: 1px solid var(--light-gray);
     color: var(--cyber-white);
-    width: 3rem;
-    height: 3rem;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -111,15 +115,15 @@ body.theme-space {
 }
 .theme-menu {
     position: absolute;
-    top: 3.5rem;
+    top: 55px;
     right: 0;
     background: var(--medium-bg);
     border: 1px solid var(--light-gray);
-    border-radius: 0.5rem;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    padding: 0.3125rem;
-    width: 11.25rem;
+    padding: 5px;
+    width: 180px;
 }
 .theme-menu.hidden {
     display: none;
@@ -128,12 +132,12 @@ body.theme-space {
     background: none;
     border: none;
     color: var(--cyber-white);
-    padding: 0.625rem;
+    padding: 10px;
     text-align: left;
     cursor: pointer;
     font-family: 'Oxanium', sans-serif;
     font-size: 1em;
-    border-radius: 0.25rem;
+    border-radius: 4px;
 }
 .theme-option:hover {
     background: var(--light-gray);
@@ -184,14 +188,14 @@ body.theme-space {
 .home-area {
     background-color: rgba(0,0,0,0.3);
     border-radius: 50%;
-    width: 80%;
-    height: 80%;
+    width: 180px;
+    height: 180px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     place-items: center;
-    padding: 0.3125rem;
-    border: 0.125rem dashed var(--light-gray);
+    padding: 5px;
+    border: 2px dashed var(--light-gray);
 }
 .token-yard {
     width: var(--token-size);
@@ -269,17 +273,17 @@ body.theme-space {
 .controls {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 20px;
     background-color: transparent;
-    padding: 1rem 1.5rem;
-    border-radius: 0.625rem;
+    padding: 15px 25px;
+    border-radius: 10px;
     border: 1px solid var(--light-gray);
 }
 #dice {
-    width: 3.75rem;
-    height: 3.75rem;
+    width: 60px;
+    height: 60px;
     background-color: var(--medium-bg);
-    border-radius: 0.625rem;
+    border-radius: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -288,12 +292,12 @@ body.theme-space {
     color: var(--cyber-white);
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
-    border: 0.125rem solid var(--cyber-white);
-    text-shadow: 0 0 0.5rem var(--cyber-white);
+    border: 2px solid var(--cyber-white);
+    text-shadow: 0 0 8px var(--cyber-white);
 }
 #dice:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 1rem var(--cyber-white);
+    box-shadow: 0 0 15px var(--cyber-white);
 }
 #dice.rolling {
     animation: roll 0.5s ease-out;
@@ -306,7 +310,7 @@ body.theme-space {
     color: var(--cyber-white);
     font-size: 1.5em;
     font-weight: 700;
-    min-width: 15.625rem;
+    min-width: 250px;
     text-align: center;
     text-transform: uppercase;
 }
@@ -321,26 +325,26 @@ body.theme-space {
     justify-content: center;
     align-items: center;
     z-index: 100;
-    backdrop-filter: blur(0.3125rem);
+    backdrop-filter: blur(5px);
 }
 .winner-box {
     background-color: var(--medium-bg);
-    padding: 2.5rem;
-    border-radius: 1.25rem;
+    padding: 40px;
+    border-radius: 20px;
     text-align: center;
-    border: 0.125rem solid;
-    box-shadow: 0 0 1.25rem;
+    border: 2px solid;
+    box-shadow: 0 0 20px;
 }
 .winner-box h2 {
     font-size: 3em;
-    margin: 0 0 1.25rem 0;
+    margin: 0 0 20px 0;
     text-transform: uppercase;
 }
 #restart-btn {
-    padding: 1rem 2rem;
+    padding: 15px 30px;
     font-size: 1.2em;
     border: none;
-    border-radius: 0.625rem;
+    border-radius: 10px;
     cursor: pointer;
     transition: background-color 0.3s;
     color: var(--dark-bg);
@@ -352,41 +356,41 @@ body.theme-space {
 /* --- Chat Box --- */
 #chat-container {
     position: absolute;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    width: 18.75rem;
-    height: 15.625rem;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    height: 250px;
     background: rgba(30, 30, 40, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 1rem;
+    border-radius: 15px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     z-index: 50;
-    backdrop-filter: blur(0.3125rem);
+    backdrop-filter: blur(5px);
 }
 #chat-messages {
     list-style-type: none;
     margin: 0;
-    padding: 0.625rem;
+    padding: 10px;
     flex-grow: 1;
     overflow-y: auto;
     font-size: 0.9em;
 }
 #chat-messages li {
-    padding: 0.3125rem 0;
+    padding: 5px 0;
     color: var(--cyber-white);
 }
 #chat-messages li .chat-player-color {
     font-weight: 700;
 }
 #chat-messages li .chat-message {
-    margin-left: 0.3125rem;
+    margin-left: 5px;
     word-wrap: break-word;
 }
 #chat-form {
     display: flex;
-    padding: 0.3125rem;
+    padding: 5px;
     background: rgba(0, 0, 0, 0.3);
 }
 #chat-input {
@@ -394,7 +398,7 @@ body.theme-space {
     background: transparent;
     border: none;
     color: var(--cyber-white);
-    padding: 0.5rem;
+    padding: 8px;
 }
 #chat-input:focus {
     outline: none;
@@ -403,7 +407,7 @@ body.theme-space {
     background: var(--blue);
     border: none;
     padding: 0 1rem;
-    border-radius: 0.3125rem;
+    border-radius: 5px;
     color: var(--dark-bg);
     cursor: pointer;
 }
