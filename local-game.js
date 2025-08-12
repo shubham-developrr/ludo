@@ -18,6 +18,7 @@ class LocalGame {
         this.callback = callback;
         this.aiMoveTimeout = null;
         this.consecutiveSixes = 0; // Track consecutive sixes
+        this.aiPlayer = new AIPlayer();
 
         this.initializePlayers();
         this.callback(); // Initial state broadcast
@@ -282,38 +283,73 @@ class LocalGame {
     }
 
     makeAIMove() {
-        console.log(`AI ${this.getCurrentPlayer()} analyzing moves...`, this.movableTokens);
-        
+        const currentPlayerColor = this.getCurrentPlayer();
+        console.log(`%cAI ${currentPlayerColor} is analyzing moves with dice value ${this.diceValue}...`, `color: ${currentPlayerColor}; font-weight: bold;`);
+
         if (this.movableTokens.length === 0) {
-            console.log(`No moves available for AI ${this.getCurrentPlayer()}, ending turn`);
+            // This case should be handled by the rollDice function, but as a fallback:
+            console.log("No moves available, ending turn.");
             this.endTurn();
             return;
         }
-        
-        // Simple AI strategy: prioritize moving tokens out of base, then closest to home
-        let bestMove = this.movableTokens[0];
-        let bestScore = -1;
-        
-        this.movableTokens.forEach(move => {
-            const token = this.players[move.color][move.id];
-            let score = 0;
+
+        let bestMove = null;
+        let bestScore = -Infinity;
+
+        // Iterate over all possible moves to find the best one
+        for (const move of this.movableTokens) {
+            const tokenToMove = this.players[move.color][move.id];
             
-            // Prioritize moving out of base
-            if (token.position === -1) score += 10;
+            // --- 1. Simulate the move in a copied state ---
+            const newPosition = this.calculateNewPosition(move.color, tokenToMove.position, this.diceValue);
+
+            // Create a deep copy of the players state for simulation
+            const simulatedPlayers = JSON.parse(JSON.stringify(this.players));
+            const simulatedToken = simulatedPlayers[move.color][move.id];
+
+            const moveDetails = {
+                captureOccurred: false,
+                tokenLeftYard: tokenToMove.position === -1
+            };
+
+            // a) Handle capture in the simulation
+            const safeSpots = this.aiPlayer.GAME_CONSTANTS.SAFE_SPOTS;
+            if (newPosition > 0 && newPosition <= 52 && !safeSpots.includes(newPosition)) {
+                for (const color in simulatedPlayers) {
+                    if (color === move.color) continue;
+                    simulatedPlayers[color].forEach(token => {
+                        if (token.position === newPosition) {
+                            token.position = -1; // Send opponent token to base
+                            moveDetails.captureOccurred = true;
+                        }
+                    });
+                }
+            }
             
-            // Prioritize tokens closer to home
-            if (token.position > 0) score += token.position / 10;
+            // b) Apply the move in the simulation
+            if (newPosition === -2) { // Reached home
+                simulatedToken.isHome = true;
+                simulatedToken.position = -2;
+            } else {
+                simulatedToken.position = newPosition;
+            }
             
-            // Prioritize entering home path
-            if (token.position > 100) score += 5;
+            // --- 2. Evaluate the outcome of the simulated move ---
+            const simulatedGameState = { ...this.getState(), players: simulatedPlayers };
+            const score = this.aiPlayer.evaluateState(simulatedGameState, currentPlayerColor, moveDetails);
+
+            console.log(`- Considering move: Token ${move.id} to position ${newPosition}. Score: ${score.toFixed(2)}`);
             
+            // --- 3. Track the best move ---
             if (score > bestScore) {
                 bestScore = score;
                 bestMove = move;
             }
-        });
+        }
+
+        console.log(`%cAI chose move for token ${bestMove.id} (to pos ${this.calculateNewPosition(bestMove.color, this.players[bestMove.color][bestMove.id].position, this.diceValue)}) with a score of ${bestScore.toFixed(2)}`, `color: ${currentPlayerColor};`);
         
-        console.log(`AI ${this.getCurrentPlayer()} chose to move token ${bestMove.id} from position ${this.players[bestMove.color][bestMove.id].position}`);
+        // --- 4. Execute the best move in the actual game ---
         this.moveToken(bestMove.color, bestMove.id);
     }
 
