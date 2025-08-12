@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let localGame = null;
     let isLocalMode = false;
 
+    // --- Sound Manager ---
+    const soundManager = new SoundManager();
+
     // ################# LOBBY LOGIC #################
 
     // Mode switching
@@ -71,26 +74,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupLobbyListeners() {
         // Mode switching
-        onlineModeBtn.addEventListener('click', switchToOnlineMode);
-        localModeBtn.addEventListener('click', switchToLocalMode);
+        onlineModeBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            switchToOnlineMode();
+        });
+        localModeBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            switchToLocalMode();
+        });
         
         // Online mode
-        createGameBtn.addEventListener('click', () => socket.emit('createGame'));
+        createGameBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            socket.emit('createGame');
+        });
         joinGameBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
             const code = roomCodeInput.value.trim();
             if (code) socket.emit('joinGame', code);
         });
-        startGameBtn.addEventListener('click', () => socket.emit('startGame'));
+        startGameBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            socket.emit('startGame');
+        });
         
         // Local mode
         playerCountSelect.addEventListener('change', updatePlayerConfigs);
-        startLocalGameBtn.addEventListener('click', startLocalGame);
+        startLocalGameBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            startLocalGame();
+        });
         
         // Initialize player configs
         updatePlayerConfigs();
     }
 
     function startLocalGame() {
+        soundManager.play('gameStart');
         const playerCount = parseInt(playerCountSelect.value);
         const colors = ['red', 'yellow', 'green', 'blue'];
         const players = [];
@@ -260,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tokenEl.addEventListener('click', () => {
                     if (tokenEl.classList.contains('movable')) {
+                        soundManager.play('tokenMove');
                         if (isLocalMode && localGame) {
                             localGame.moveToken(color, i);
                         } else {
@@ -278,6 +299,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function render(gameState) {
+        // --- Sound Effects ---
+        // Dice Roll End
+        if (gameState.diceValue && gameState.diceValue !== clientGameState.diceValue) {
+            soundManager.play('diceRollEnd');
+            if (gameState.diceValue === 6) {
+                soundManager.play('rollingASix');
+            }
+        }
+        // Your Turn Alert
+        const oldPlayer = clientGameState.currentPlayerColor;
+        const newPlayer = gameState.currentPlayerColor;
+        if (newPlayer !== oldPlayer) {
+            const isMyTurnOnline = !gameState.isLocalGame && myPlayerInfo && newPlayer === myPlayerInfo.color;
+            const isHumanTurnLocal = gameState.isLocalGame && gameState.currentPlayerType === 'human';
+            if (isMyTurnOnline || isHumanTurnLocal) {
+                soundManager.play('yourTurnAlert');
+            }
+        }
+        // Capture and Home
+        if (gameState.lastMoveEvents) {
+            if (gameState.lastMoveEvents.capture) {
+                soundManager.play('tokenCapture');
+            }
+            if (gameState.lastMoveEvents.home) {
+                soundManager.play('tokenSafeHome');
+            }
+            if (gameState.lastMoveEvents.tripleSixPenalty) {
+                soundManager.play('tripleSixPenalty');
+            }
+        }
+
         clientGameState = gameState;
         const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
 
@@ -347,6 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dice.style.borderColor = staticColors[currentPlayerColor];
         
         if (winner) {
+            if (!clientGameState.winner) { // Play sound only on first detection
+                soundManager.play('victory');
+            }
             clearInterval(turnTimerInterval);
             winnerMessage.textContent = `${winner} wins!`;
             winnerOverlay.style.display = 'flex';
@@ -357,16 +412,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupGameListeners() {
         dice.addEventListener('click', () => {
-            if (isLocalMode && localGame) {
-                const gameState = localGame.getState();
-                if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
+            const isMyTurnOnline = clientGameState.currentPlayerColor === myPlayerInfo?.color;
+            const isMyTurnLocal = isLocalMode && localGame?.getState().currentPlayerType === 'human';
+
+            if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling') {
+                soundManager.play('diceRollStart');
+                if (isLocalMode) {
                     localGame.rollDice();
+                } else {
+                    socket.emit('rollDice');
                 }
-            } else if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
-                socket.emit('rollDice');
             }
         });
-        restartBtn.addEventListener('click', () => window.location.reload());
+        restartBtn.addEventListener('click', () => {
+            soundManager.play('buttonClick');
+            window.location.reload();
+        });
+
+        gameContainer.addEventListener('click', (e) => {
+            const clickedEl = e.target.closest('.token');
+            if (clickedEl && !clickedEl.classList.contains('movable')) {
+                const isMyTurnOnline = clientGameState.currentPlayerColor === myPlayerInfo?.color;
+                const isMyTurnLocal = isLocalMode && localGame?.getState().currentPlayerType === 'human';
+                const tokenColor = Array.from(clickedEl.classList).find(c => c.endsWith('-token'))?.split('-')[0];
+
+                if ((isMyTurnOnline || isMyTurnLocal) && tokenColor === clientGameState.currentPlayerColor) {
+                    soundManager.play('invalidMove');
+                }
+            }
+        });
 
         // Resize/orientation handling: rebuild board grid and re-attach tokens into proper cells
         const handleResize = () => {
@@ -405,6 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     socket.on('gameStarted', ({ players }) => {
+        soundManager.play('gameStart');
         lobbyContainer.style.display = 'none';
         gameContainer.style.display = 'flex';
         createBoard();
@@ -422,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Chat toggle functionality
     chatToggleBtn.addEventListener('click', () => {
+        soundManager.play('buttonClick');
         if (chatContainer.style.display === 'none') {
             chatContainer.style.display = 'flex';
             localStorage.setItem('ludoChatVisible', 'true');
@@ -440,12 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
         if (chatInput.value) {
+            soundManager.play('buttonClick');
             socket.emit('sendMessage', chatInput.value);
             chatInput.value = '';
         }
     });
 
     socket.on('newMessage', ({ senderColor, message }) => {
+        soundManager.play('chatMessage');
         const item = document.createElement('li');
         const colorSpan = document.createElement('span');
         colorSpan.textContent = `${senderColor}: `;
@@ -471,9 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... (rest of the theme logic is the same)
     const themeMenu = document.getElementById('theme-menu');
     const themeOptions = document.querySelectorAll('.theme-option');
-    themeBtn.addEventListener('click', () => themeMenu.classList.toggle('hidden'));
+    themeBtn.addEventListener('click', () => {
+        soundManager.play('buttonClick');
+        themeMenu.classList.toggle('hidden');
+    });
     themeOptions.forEach(option => {
         option.addEventListener('click', () => {
+            soundManager.play('buttonClick');
             applyTheme(option.dataset.theme);
             themeMenu.classList.add('hidden');
         });
@@ -489,8 +571,10 @@ document.addEventListener('DOMContentLoaded', () => {
         space: 'assets/audio/space.mp3'
     };
     function toggleMute() {
-        music.muted = !music.muted;
-        localStorage.setItem('ludoMuted', music.muted);
+        const isMuted = !music.muted;
+        music.muted = isMuted;
+        soundManager.setMuted(isMuted);
+        localStorage.setItem('ludoMuted', isMuted);
         updateMuteButton();
     }
     function updateMuteButton() {
@@ -502,7 +586,10 @@ document.addEventListener('DOMContentLoaded', () => {
             volumeMuteIcon.classList.add('hidden');
         }
     }
-    muteBtn.addEventListener('click', toggleMute);
+    muteBtn.addEventListener('click', () => {
+        soundManager.play('buttonClick');
+        toggleMute();
+    });
     function applyTheme(theme) {
         document.body.className = '';
         document.body.classList.add(`theme-${theme}`);
@@ -513,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
     const savedMuted = localStorage.getItem('ludoMuted') === 'true';
     music.muted = savedMuted;
+    soundManager.setMuted(savedMuted);
     updateMuteButton();
     applyTheme(savedTheme);
 
