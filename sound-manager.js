@@ -25,8 +25,25 @@ class SoundManager {
             emojiReaction: new Audio('assets/audio/boop.mp3'),
         };
 
-        this.isMuted = false;
-        this.masterVolume = 1.0;
+        // Theme music tracks
+        this.themeMusic = {
+            cyberpunk: new Audio('assets/audio/cyberpunk.mp3'),
+            egypt: new Audio('assets/audio/egypt.mp3'),
+            jurassic: new Audio('assets/audio/jurassic.mp3'),
+            space: new Audio('assets/audio/space.mp3'),
+        };
+
+        // Set theme music to loop
+        Object.values(this.themeMusic).forEach(audio => {
+            audio.loop = true;
+            audio.volume = 0.3;
+        });
+
+        this.currentThemeAudio = null;
+        this.isSfxMuted = false;
+        this.isMusicMuted = false;
+        this.sfxVolume = 0.5;
+        this.musicVolume = 0.5;
 
         // Set default volumes
         this.sounds.tokenMove.volume = 0.5;
@@ -35,7 +52,7 @@ class SoundManager {
     }
 
     play(name, options = {}) {
-        if (this.isMuted) return;
+        if (this.isSfxMuted) return;
 
         const sound = this.sounds[name];
         if (!sound) {
@@ -44,17 +61,74 @@ class SoundManager {
         }
 
         const soundInstance = sound.cloneNode(true);
-        soundInstance.volume = (options.volume || sound.volume) * this.masterVolume;
+        soundInstance.volume = (options.volume || sound.volume) * this.sfxVolume;
         soundInstance.playbackRate = options.speed || 1;
         soundInstance.play().catch(e => console.error(`Error playing sound: ${name}`, e));
     }
 
+    playThemeMusic(theme) {
+        // Stop current theme music
+        this.stopThemeMusic();
+
+        if (this.isMusicMuted) return;
+
+        const themeAudio = this.themeMusic[theme];
+        if (!themeAudio) {
+            console.warn(`Theme music not found: ${theme}`);
+            return;
+        }
+
+        this.currentThemeAudio = themeAudio;
+        themeAudio.volume = this.musicVolume;
+        themeAudio.play().catch(e => console.error(`Error playing theme music: ${theme}`, e));
+    }
+
+    stopThemeMusic() {
+        if (this.currentThemeAudio) {
+            this.currentThemeAudio.pause();
+            this.currentThemeAudio.currentTime = 0;
+            this.currentThemeAudio = null;
+        }
+    }
+
+    setSfxMuted(muted) {
+        this.isSfxMuted = muted;
+    }
+
+    setMusicMuted(muted) {
+        this.isMusicMuted = muted;
+        if (muted) {
+            this.stopThemeMusic();
+        } else if (this.currentTheme) {
+            this.playThemeMusic(this.currentTheme);
+        }
+    }
+
+    setSfxVolume(volume) {
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
+    }
+
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        if (this.currentThemeAudio) {
+            this.currentThemeAudio.volume = this.musicVolume;
+        }
+    }
+
+    setCurrentTheme(theme) {
+        this.currentTheme = theme;
+    }
+
+    // Legacy methods for backward compatibility
     setMuted(muted) {
-        this.isMuted = muted;
+        this.setSfxMuted(muted);
+        this.setMusicMuted(muted);
     }
 
     toggleMute() {
-        this.isMuted = !this.isMuted;
-        return this.isMuted;
+        const newMutedState = !this.isSfxMuted;
+        this.setSfxMuted(newMutedState);
+        this.setMusicMuted(newMutedState);
+        return newMutedState;
     }
 }

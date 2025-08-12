@@ -13,8 +13,6 @@ class LocalGame {
         this.turnState = 'rolling'; // 'rolling', 'moving'
         this.movableTokens = [];
         this.winner = null;
-        this.turnStartTime = Date.now();
-        this.turnDuration = 30000; // 30 seconds per turn
         this.callback = callback;
         this.aiMoveTimeout = null;
         this.consecutiveSixes = 0; // Track consecutive sixes
@@ -368,7 +366,6 @@ class LocalGame {
             turnState: this.turnState,
             movableTokens: this.movableTokens,
             winner: this.winner,
-            turnEndsAt: this.turnStartTime + this.turnDuration,
             isLocalGame: true,
             currentPlayerType: this.getCurrentPlayerConfig().type,
             lastMoveEvents: this.lastMoveEvents || null

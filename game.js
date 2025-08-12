@@ -317,6 +317,16 @@ class Game {
             }
         }
     }
+
+    handleTurnTimeout(playerId) {
+        // Check if it's actually this player's turn
+        const currentPlayerConfig = this.getCurrentPlayerConfig();
+        if (currentPlayerConfig && currentPlayerConfig.id === playerId) {
+            // End turn automatically when timeout occurs
+            this.endTurn();
+            this.broadcastState();
+        }
+    }
 }
 
 module.exports = Game;

@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
+    // Add initial lobby screen class
+    document.body.classList.add('lobby-screen');
+
     // --- DOM Elements ---
     const lobbyContainer = document.getElementById('lobby-container');
     const createGameBtn = document.getElementById('create-game-btn');
@@ -131,6 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide lobby and show game
         lobbyContainer.style.display = 'none';
         gameContainer.style.display = 'flex';
+        
+        // Add local game class to body for CSS styling
+        document.body.classList.add('local-game');
+        document.body.classList.remove('lobby-screen');
+        
         createBoard();
         createTokenElements(players);
         
@@ -333,15 +341,30 @@ document.addEventListener('DOMContentLoaded', () => {
         clientGameState = gameState;
         const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
 
+        // Handle timer display only for online games
         if (turnTimerInterval) clearInterval(turnTimerInterval);
-        turnTimerInterval = setInterval(() => {
-            const timeLeft = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
-            let statusText = `${currentPlayerColor}'s turn (${timeLeft}s)`;
-            if (isLocalGame && currentPlayerType === 'ai') {
-                statusText = `${currentPlayerColor} (AI) - ${timeLeft}s`;
+        
+        if (!isLocalGame && turnEndsAt) {
+            // Only show timer for online multiplayer games
+            turnTimerInterval = setInterval(() => {
+                const timeLeft = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+                if (timeLeft <= 0) {
+                    // Timer ran out - emit timeout event to server
+                    clearInterval(turnTimerInterval);
+                    socket.emit('turnTimeout');
+                    status.textContent = `${currentPlayerColor}'s turn (Time's up!)`;
+                    return;
+                }
+                status.textContent = `${currentPlayerColor}'s turn (${timeLeft}s)`;
+            }, 500);
+        } else if (isLocalGame) {
+            // Local game - no timer, just show current player
+            if (currentPlayerType === 'ai') {
+                status.textContent = `${currentPlayerColor} (AI) is thinking...`;
+            } else {
+                status.textContent = `${currentPlayerColor}'s turn`;
             }
-            status.textContent = statusText;
-        }, 500);
+        }
 
         Object.keys(tokenElements).forEach(color => {
             if (!players[color]) { // Player might have disconnected
@@ -426,6 +449,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         restartBtn.addEventListener('click', () => {
             soundManager.play('buttonClick');
+            // Reset body classes before reload
+            document.body.classList.remove('local-game', 'online-game');
+            document.body.classList.add('lobby-screen');
             window.location.reload();
         });
 
@@ -482,6 +508,11 @@ document.addEventListener('DOMContentLoaded', () => {
         soundManager.play('gameStart');
         lobbyContainer.style.display = 'none';
         gameContainer.style.display = 'flex';
+        
+        // Add online game class to body for CSS styling
+        document.body.classList.remove('lobby-screen', 'local-game');
+        document.body.classList.add('online-game');
+        
         createBoard();
         createTokenElements(players);
     });
@@ -546,13 +577,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- THEME/SOUND LOGIC ---
     const themeBtn = document.getElementById('theme-btn');
-    // ... (rest of the theme logic is the same)
     const themeMenu = document.getElementById('theme-menu');
     const themeOptions = document.querySelectorAll('.theme-option');
+    
+    // Audio controls
+    const audioBtn = document.getElementById('audio-btn');
+    const audioMenu = document.getElementById('audio-menu');
+    const musicToggle = document.getElementById('music-toggle');
+    const sfxToggle = document.getElementById('sfx-toggle');
+    const musicVolumeSlider = document.getElementById('music-volume');
+    const sfxVolumeSlider = document.getElementById('sfx-volume');
+    const musicVolumeValue = musicVolumeSlider.nextElementSibling;
+    const sfxVolumeValue = sfxVolumeSlider.nextElementSibling;
+    
+    // Theme functionality
     themeBtn.addEventListener('click', () => {
         soundManager.play('buttonClick');
         themeMenu.classList.toggle('hidden');
+        // Close audio menu if open
+        audioMenu.classList.add('hidden');
     });
+    
     themeOptions.forEach(option => {
         option.addEventListener('click', () => {
             soundManager.play('buttonClick');
@@ -560,49 +605,99 @@ document.addEventListener('DOMContentLoaded', () => {
             themeMenu.classList.add('hidden');
         });
     });
-    const music = document.getElementById('background-music');
-    const muteBtn = document.getElementById('mute-btn');
-    const volumeUpIcon = document.getElementById('volume-up-icon');
-    const volumeMuteIcon = document.getElementById('volume-mute-icon');
-    const musicMap = {
-        cyberpunk: 'assets/audio/cyberpunk.mp3',
-        egypt: 'assets/audio/egypt.mp3',
-        jurassic: 'assets/audio/jurassic.mp3',
-        space: 'assets/audio/space.mp3'
-    };
-    function toggleMute() {
-        const isMuted = !music.muted;
-        music.muted = isMuted;
-        soundManager.setMuted(isMuted);
-        localStorage.setItem('ludoMuted', isMuted);
-        updateMuteButton();
-    }
-    function updateMuteButton() {
-        if (music.muted) {
-            volumeUpIcon.classList.add('hidden');
-            volumeMuteIcon.classList.remove('hidden');
-        } else {
-            volumeUpIcon.classList.remove('hidden');
-            volumeMuteIcon.classList.add('hidden');
-        }
-    }
-    muteBtn.addEventListener('click', () => {
+    
+    // Audio dropdown functionality
+    audioBtn.addEventListener('click', () => {
         soundManager.play('buttonClick');
-        toggleMute();
+        audioMenu.classList.toggle('hidden');
+        // Close theme menu if open
+        themeMenu.classList.add('hidden');
     });
+    
+    // Music controls
+    musicToggle.addEventListener('change', () => {
+        soundManager.play('buttonClick');
+        const isMuted = !musicToggle.checked;
+        soundManager.setMusicMuted(isMuted);
+        localStorage.setItem('ludoMusicMuted', isMuted);
+    });
+    
+    musicVolumeSlider.addEventListener('input', () => {
+        const volume = musicVolumeSlider.value / 100;
+        soundManager.setMusicVolume(volume);
+        musicVolumeValue.textContent = `${musicVolumeSlider.value}%`;
+        localStorage.setItem('ludoMusicVolume', volume);
+    });
+    
+    // SFX controls
+    sfxToggle.addEventListener('change', () => {
+        soundManager.play('buttonClick');
+        const isMuted = !sfxToggle.checked;
+        soundManager.setSfxMuted(isMuted);
+        localStorage.setItem('ludoSfxMuted', isMuted);
+    });
+    
+    sfxVolumeSlider.addEventListener('input', () => {
+        const volume = sfxVolumeSlider.value / 100;
+        soundManager.setSfxVolume(volume);
+        sfxVolumeValue.textContent = `${sfxVolumeSlider.value}%`;
+        localStorage.setItem('ludoSfxVolume', volume);
+        // Play a test sound to demonstrate volume change
+        soundManager.play('buttonClick');
+    });
+    
+    // Close menus when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!themeBtn.contains(e.target) && !themeMenu.contains(e.target)) {
+            themeMenu.classList.add('hidden');
+        }
+        if (!audioBtn.contains(e.target) && !audioMenu.contains(e.target)) {
+            audioMenu.classList.add('hidden');
+        }
+    });
+    
     function applyTheme(theme) {
         document.body.className = '';
         document.body.classList.add(`theme-${theme}`);
         localStorage.setItem('ludoTheme', theme);
-        music.src = musicMap[theme];
-        if (!music.muted) music.play().catch(e => console.log("Audio play failed"));
+        soundManager.setCurrentTheme(theme);
+        
+        // Play theme music if not muted
+        if (!soundManager.isMusicMuted) {
+            soundManager.playThemeMusic(theme);
+        }
     }
+    
+    // Load saved audio settings
     const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
-    const savedMuted = localStorage.getItem('ludoMuted') === 'true';
-    music.muted = savedMuted;
-    soundManager.setMuted(savedMuted);
-    updateMuteButton();
+    const savedMusicMuted = localStorage.getItem('ludoMusicMuted') === 'true';
+    const savedSfxMuted = localStorage.getItem('ludoSfxMuted') === 'true';
+    const savedMusicVolume = parseFloat(localStorage.getItem('ludoMusicVolume')) || 0.5;
+    const savedSfxVolume = parseFloat(localStorage.getItem('ludoSfxVolume')) || 0.5;
+    
+    // Apply saved settings
+    soundManager.setMusicMuted(savedMusicMuted);
+    soundManager.setSfxMuted(savedSfxMuted);
+    soundManager.setMusicVolume(savedMusicVolume);
+    soundManager.setSfxVolume(savedSfxVolume);
+    
+    // Update UI controls
+    musicToggle.checked = !savedMusicMuted;
+    sfxToggle.checked = !savedSfxMuted;
+    musicVolumeSlider.value = savedMusicVolume * 100;
+    sfxVolumeSlider.value = savedSfxVolume * 100;
+    musicVolumeValue.textContent = `${Math.round(savedMusicVolume * 100)}%`;
+    sfxVolumeValue.textContent = `${Math.round(savedSfxVolume * 100)}%`;
+    
     applyTheme(savedTheme);
+    
+    // Add click sound to all buttons that don't already have it
+    document.addEventListener('click', (e) => {
+        if (e.target.matches('button:not(.ui-btn):not(.theme-option)') || 
+            e.target.closest('button:not(.ui-btn):not(.theme-option)')) {
+            soundManager.play('buttonClick');
+        }
+    });
 
 
     // --- INITIALIZATION ---

@@ -106,6 +106,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('turnTimeout', () => {
+        const room = rooms[currentRoomCode];
+        if (room && room.game) {
+            // Handle turn timeout by automatically ending the turn
+            room.game.handleTurnTimeout(socket.id);
+            broadcastGameState(currentRoomCode);
+        }
+    });
+
     socket.on('sendMessage', (message) => {
         const room = rooms[currentRoomCode];
         if (room && room.players[socket.id]) {
