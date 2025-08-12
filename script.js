@@ -697,7 +697,15 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.closest('button:not(.ui-btn):not(.theme-option)')) {
             soundManager.play('buttonClick');
         }
-    });
+    // Add click sound to all buttons that don't already have it (delegated to lobbyContainer)
+    if (lobbyContainer) {
+        lobbyContainer.addEventListener('click', (e) => {
+            if (e.target.matches('button:not(.ui-btn):not(.theme-option)') || 
+                e.target.closest('button:not(.ui-btn):not(.theme-option)')) {
+                soundManager.play('buttonClick');
+            }
+        });
+    }
 
 
     // --- INITIALIZATION ---
