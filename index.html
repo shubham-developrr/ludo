@@ -87,6 +87,11 @@
             <div id="dice">🎲</div>
             <div id="game-status">Red's turn</div>
         </div>
+        <div id="lucky-streak-indicator" class="lucky-streak hidden">
+            <div class="lucky-streak-content">
+                <span class="lucky-streak-text">LUCKY STREAK!</span>
+            </div>
+        </div>
         <div id="chat-container">
             <ul id="chat-messages"></ul>
             <form id="chat-form" action="">
@@ -103,6 +108,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="sound-manager.js"></script>
+    <script src="animation-manager.js"></script>
     <script src="ai-player.js"></script>
     <script src="local-game.js"></script>
     <script src="script.js"></script>
@@ -115,10 +121,31 @@
                 </svg>
             </button>
             <div id="theme-menu" class="theme-menu hidden">
-                <button class="theme-option" data-theme="cyberpunk">Cyberpunk</button>
-                <button class="theme-option" data-theme="egypt">Ancient Egypt</button>
-                <button class="theme-option" data-theme="jurassic">Jurassic Jungle</button>
-                <button class="theme-option" data-theme="space">Outer Space</button>
+                <div class="settings-section">
+                    <h4>Visual Theme</h4>
+                    <button class="theme-option" data-theme="cyberpunk">Cyberpunk</button>
+                    <button class="theme-option" data-theme="egypt">Ancient Egypt</button>
+                    <button class="theme-option" data-theme="jurassic">Jurassic Jungle</button>
+                    <button class="theme-option" data-theme="space">Outer Space</button>
+                </div>
+                <div class="settings-section">
+                    <h4>Gameplay Speed</h4>
+                    <div class="speed-control">
+                        <button class="speed-option active" data-speed="1">1×</button>
+                        <button class="speed-option" data-speed="1.5">1.5×</button>
+                        <button class="speed-option" data-speed="2">2×</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Animation Style</h4>
+                    <div class="animation-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="animation-style-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="animation-label">Playful Mode</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="audio-selector">

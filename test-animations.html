@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation System Test</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: rgba(30, 30, 40, 0.9);
+            border-radius: 15px;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .test-dice {
+            font-size: 3rem;
+            cursor: pointer;
+            display: inline-block;
+            padding: 20px;
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        .test-token {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ff4444;
+            margin: 10px;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .test-cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin: 5px;
+            display: inline-block;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="theme-cyberpunk">
+    <div class="test-container">
+        <h1>Animation System Test</h1>
+        
+        <div class="test-section">
+            <h3>Settings Menu</h3>
+            <p>Click the gear icon in the top-right to test the new settings menu with:</p>
+            <ul>
+                <li>Visual Theme selection</li>
+                <li>Gameplay Speed (1×, 1.5×, 2×)</li>
+                <li>Animation Style toggle (Modern/Playful)</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>Dice Roll Animation</h3>
+            <p>Click the dice to test the animation:</p>
+            <div id="test-dice" class="test-dice">🎲</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Token Movement Animation</h3>
+            <p>Click the red token to move it between cells:</p>
+            <div class="test-cell" id="cell-1"></div>
+            <div class="test-cell" id="cell-2"></div>
+            <div class="test-cell" id="cell-3"></div>
+            <div class="test-cell" id="cell-4"></div>
+            <div id="test-token" class="test-token"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Lucky Streak Indicator</h3>
+            <p>Click to trigger the lucky streak animation:</p>
+            <button id="test-lucky-streak" style="padding: 10px 20px; background: #00ff88; color: black; border: none; border-radius: 5px; cursor: pointer;">Trigger Lucky Streak</button>
+        </div>
+    </div>
+
+    <!-- Include the UI controls from the main game -->
+    <div class="ui-controls-top-right">
+        <div class="theme-selector">
+            <button id="theme-btn" class="ui-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-gear-wide" viewBox="0 0 16 16">
+                    <path d="M8.932.727c-.243-.97-1.62-.97-1.864 0l-.071.286a.96.96 0 0 1-1.622.434l-.205-.211c-.695-.719-1.888-.03-1.613.931l.08.284a.96.96 0 0 1-1.186 1.187l-.284-.081c-.96-.275-1.65.918-.931 1.613l.211.205a.96.96 0 0 1-.434 1.622l-.286.071c-.97.243-.97 1.62 0 1.864l.286.071a.96.96 0 0 1 .434 1.622l-.211.205c-.719.695-.03 1.888.931 1.613l.284-.08a.96.96 0 0 1 1.187 1.187l.081.283c.275.96.918 1.65 1.613.931l.205-.211a.96.96 0 0 1 1.622.434l.071.286c.243.97 1.62.97 1.864 0l.071-.286a.96.96 0 0 1 1.622-.434l.205.211c.695.719 1.888.03 1.613-.931l-.08-.284a.96.96 0 0 1 1.187-1.187l.283.081c.96.275 1.65-.918.931-1.613l-.211-.205a.96.96 0 0 1 .434-1.622l.286-.071c.97-.243.97-1.62 0-1.864l-.286-.071a.96.96 0 0 1-.434-1.622l.211-.205c.719-.695.03-1.888-.931-1.613l-.284.08a.96.96 0 0 1-1.187-1.186l.081-.284c.275-.96-.918-1.65-1.613-.931l-.205.211a.96.96 0 0 1-1.622-.434zM8 12.997a4.998 4.998 0 1 1 0-9.995 4.998 4.998 0 0 1 0 9.996z"/>
+                </svg>
+            </button>
+            <div id="theme-menu" class="theme-menu hidden">
+                <div class="settings-section">
+                    <h4>Visual Theme</h4>
+                    <button class="theme-option" data-theme="cyberpunk">Cyberpunk</button>
+                    <button class="theme-option" data-theme="egypt">Ancient Egypt</button>
+                    <button class="theme-option" data-theme="jurassic">Jurassic Jungle</button>
+                    <button class="theme-option" data-theme="space">Outer Space</button>
+                </div>
+                <div class="settings-section">
+                    <h4>Gameplay Speed</h4>
+                    <div class="speed-control">
+                        <button class="speed-option active" data-speed="1">1×</button>
+                        <button class="speed-option" data-speed="1.5">1.5×</button>
+                        <button class="speed-option" data-speed="2">2×</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Animation Style</h4>
+                    <div class="animation-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="animation-style-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="animation-label">Playful Mode</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lucky Streak Indicator -->
+    <div id="lucky-streak-indicator" class="lucky-streak hidden">
+        <div class="lucky-streak-content">
+            <span class="lucky-streak-text">LUCKY STREAK!</span>
+        </div>
+    </div>
+
+    <script src="animation-manager.js"></script>
+    <script>
+        // Initialize animation manager
+        const animationManager = new AnimationManager();
+        
+        // Test dice roll
+        document.getElementById('test-dice').addEventListener('click', () => {
+            const diceValue = Math.floor(Math.random() * 6) + 1;
+            animationManager.animateDiceRoll(document.getElementById('test-dice'), diceValue);
+        });
+        
+        // Test token movement
+        let currentCell = 1;
+        document.getElementById('test-token').addEventListener('click', () => {
+            const token = document.getElementById('test-token');
+            const nextCell = document.getElementById(`cell-${currentCell}`);
+            animationManager.animateTokenMove(token, nextCell);
+            currentCell = currentCell >= 4 ? 1 : currentCell + 1;
+        });
+        
+        // Test lucky streak
+        document.getElementById('test-lucky-streak').addEventListener('click', () => {
+            animationManager.showLuckyStreak();
+        });
+        
+        // Initialize animation manager event listeners
+        animationManager.setupEventListeners();
+        
+        // Theme functionality
+        const themeBtn = document.getElementById('theme-btn');
+        const themeMenu = document.getElementById('theme-menu');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        
+        themeBtn.addEventListener('click', () => {
+            themeMenu.classList.toggle('hidden');
+        });
+        
+        themeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.dataset.theme;
+                document.body.className = `theme-${theme}`;
+                localStorage.setItem('ludoTheme', theme);
+            });
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!themeBtn.contains(e.target) && !themeMenu.contains(e.target)) {
+                themeMenu.classList.add('hidden');
+            }
+        });
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('ludoTheme') || 'cyberpunk';
+        document.body.className = `theme-${savedTheme}`;
+    </script>
+</body>
+</html>
