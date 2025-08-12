@@ -13,8 +13,6 @@ class LocalGame {
         this.turnState = 'rolling'; // 'rolling', 'moving'
         this.movableTokens = [];
         this.winner = null;
-        this.turnStartTime = Date.now();
-        this.turnDuration = 30000; // 30 seconds per turn
         this.callback = callback;
         this.aiMoveTimeout = null;
         this.consecutiveSixes = 0; // Track consecutive sixes
@@ -59,18 +57,21 @@ class LocalGame {
     rollDice() {
         if (this.turnState !== 'rolling' || this.winner) return;
 
-        // Modified three sixes rule: after 2 consecutive sixes, only roll 1-5
-        if (this.consecutiveSixes >= 2) {
-            this.diceValue = Math.floor(Math.random() * 5) + 1; // 1-5 only
-        } else {
-            this.diceValue = Math.floor(Math.random() * 6) + 1; // 1-6 normally
-        }
-        
-        // Track consecutive sixes
+        this.diceValue = Math.floor(Math.random() * 6) + 1;
+
         if (this.diceValue === 6) {
             this.consecutiveSixes++;
         } else {
             this.consecutiveSixes = 0;
+        }
+
+        if (this.consecutiveSixes === 3) {
+            // Penalty for rolling three 6s
+            this.lastMoveEvents = { tripleSixPenalty: true };
+            this.endTurn(); // This also resets consecutiveSixes
+            this.callback();
+            this.lastMoveEvents = null; // Reset after callback
+            return;
         }
         
         this.turnState = 'moving';
@@ -203,6 +204,9 @@ class LocalGame {
         this.checkWinner();
         
         const reachedHome = (newPosition === -2);
+
+        // Set events for this move
+        this.lastMoveEvents = { capture: captureOccurred, home: reachedHome };
         
         // End turn or give another turn for rolling 6, capturing, or reaching home
         if ((this.diceValue === 6 || captureOccurred || reachedHome) && !this.winner) {
@@ -224,6 +228,7 @@ class LocalGame {
         }
         
         this.callback();
+        this.lastMoveEvents = null; // Reset after callback
     }
 
     handleCapture(position, movingColor) {
@@ -361,9 +366,9 @@ class LocalGame {
             turnState: this.turnState,
             movableTokens: this.movableTokens,
             winner: this.winner,
-            turnEndsAt: this.turnStartTime + this.turnDuration,
             isLocalGame: true,
-            currentPlayerType: this.getCurrentPlayerConfig().type
+            currentPlayerType: this.getCurrentPlayerConfig().type,
+            lastMoveEvents: this.lastMoveEvents || null
         };
     }
 }
