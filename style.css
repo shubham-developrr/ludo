@@ -416,7 +416,7 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     gap: var(--spacing);
-    background-color: #000000;
+    background-color: var(--dark-bg);
     padding: 12px 20px;
     border-radius: 10px;
     border: 1px solid #f5f5fa;
