@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHostId = null;
     let localGame = null;
     let isLocalMode = false;
+    const isTouchDevice = 'ontouchstart' in window;
 
     // ################# LOBBY LOGIC #################
 
@@ -258,7 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tokenEl.classList.add('token', `${color}-token`);
                 tokenEl.id = `${color}-token-${i}`;
 
-                tokenEl.addEventListener('click', () => {
+                const eventType = isTouchDevice ? 'touchstart' : 'click';
+                tokenEl.addEventListener(eventType, () => {
                     if (tokenEl.classList.contains('movable')) {
                         if (isLocalMode && localGame) {
                             localGame.moveToken(color, i);
@@ -353,10 +355,40 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             winnerOverlay.style.display = 'none';
         }
+
+        renderPlayerInfo(players, currentPlayerColor);
+    }
+
+    function renderPlayerInfo(players, currentPlayerColor) {
+        const playerInfoContainer = document.querySelector('.player-info-container');
+        if (!playerInfoContainer) return;
+
+        playerInfoContainer.innerHTML = '';
+        Object.keys(players).forEach(color => {
+            const playerEl = document.createElement('div');
+            playerEl.classList.add('player-info');
+            if (color === currentPlayerColor) {
+                playerEl.classList.add('current');
+            }
+            playerEl.innerHTML = `
+                <div class="player-color-indicator" style="background-color: ${staticColors[color]}"></div>
+                <div class="player-name">${color}</div>
+            `;
+            playerInfoContainer.appendChild(playerEl);
+        });
     }
 
     function setupGameListeners() {
-        dice.addEventListener('click', () => {
+        // 4. Mobile-Specific Enhancements - JS
+        // Disable pinch and double-tap zoom on the board
+        board.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        const eventType = isTouchDevice ? 'touchstart' : 'click';
+        dice.addEventListener(eventType, () => {
             if (isLocalMode && localGame) {
                 const gameState = localGame.getState();
                 if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
@@ -367,6 +399,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         restartBtn.addEventListener('click', () => window.location.reload());
+
+        // 4. Mobile-Specific Enhancements - JS
+        // Tap anywhere to roll dice
+        gameContainer.addEventListener('click', (e) => {
+            // Avoid triggering on UI elements
+            if (e.target.closest('.token, .ui-btn, button, input, a')) {
+                return;
+            }
+
+            if (isLocalMode && localGame) {
+                const gameState = localGame.getState();
+                if (gameState.turnState === 'rolling' && gameState.currentPlayerType === 'human') {
+                    localGame.rollDice();
+                }
+            } else if (clientGameState.currentPlayerColor === myPlayerInfo.color && clientGameState.turnState === 'rolling') {
+                socket.emit('rollDice');
+            }
+        });
     }
 
     socket.on('gameStarted', ({ players }) => {
@@ -480,6 +530,50 @@ document.addEventListener('DOMContentLoaded', () => {
     music.muted = savedMuted;
     updateMuteButton();
     applyTheme(savedTheme);
+
+
+    // 4. Mobile-Specific Enhancements - JS
+    // Show rotate warning
+    function checkOrientation() {
+        const rotateWarning = document.getElementById('rotate-warning');
+        if (window.innerHeight > window.innerWidth && screen.width < 768) {
+            rotateWarning.style.display = 'flex';
+        } else {
+            rotateWarning.style.display = 'none';
+        }
+
+        // 5. Performance and Conditional Loading - JS
+        // Add no-animations class on smaller screens
+        if (screen.width < 768) {
+            document.body.classList.add('no-animations');
+        } else {
+            document.body.classList.remove('no-animations');
+        }
+    }
+
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('load', checkOrientation);
+
+    // 4. Mobile-Specific Enhancements - JS
+    // Handle virtual keyboard
+    if (window.visualViewport) {
+        let initialHeight = window.visualViewport.height;
+        window.visualViewport.addEventListener('resize', () => {
+            const isKeyboardOpen = window.visualViewport.height < initialHeight - 150; // 150px threshold
+            document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+        });
+    }
+
+
+    // 6. Advanced CSS & JS - JS
+    // Dynamic scaling class
+    function updateGameScale() {
+        const scale = Math.min(window.innerWidth / 1200, 1);
+        document.documentElement.style.setProperty('--game-scale', scale);
+    }
+
+    window.addEventListener('resize', updateGameScale);
+    window.addEventListener('load', updateGameScale);
 
 
     // --- INITIALIZATION ---

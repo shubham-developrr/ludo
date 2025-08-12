@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ludo Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="lobby.css">
+    <link rel="stylesheet" href="responsive.css">
 </head>
 <body>
     <div id="lobby-container">
@@ -81,16 +82,21 @@
     </div>
 
     <div class="game-container" style="display: none;">
-        <div id="ludo-board"></div>
-        <div class="controls">
-            <div id="dice">🎲</div>
-            <div id="game-status">Red's turn</div>
+        <div class="player-info-container">
+            <!-- Player info will be dynamically added here -->
         </div>
-        <div id="chat-container">
-            <ul id="chat-messages"></ul>
-            <form id="chat-form" action="">
-                <input id="chat-input" autocomplete="off" /><button>Send</button>
-            </form>
+        <div id="ludo-board"></div>
+        <div class="right-panel-container">
+            <div class="controls">
+                <div id="dice">🎲</div>
+                <div id="game-status">Red's turn</div>
+            </div>
+            <div id="chat-container">
+                <ul id="chat-messages"></ul>
+                <form id="chat-form" action="">
+                    <input id="chat-input" autocomplete="off" /><button>Send</button>
+                </form>
+            </div>
         </div>
     </div>
     <div id="winner-overlay" class="winner-overlay">
@@ -141,5 +147,9 @@
         </button>
     </div>
     <audio id="background-music" loop></audio>
+
+    <div id="rotate-warning" style="display: none;">
+        <p>Please rotate your device to landscape for the best experience.</p>
+    </div>
 </body>
 </html>

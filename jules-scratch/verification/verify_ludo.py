@@ -15,7 +15,7 @@ async def main():
 
         # 1. Host navigates to lobby and takes screenshot
         await page1.goto("http://localhost:3000")
-        await expect(page1.get_by_role("heading", name="Ludo Multiplayer")).to_be_visible()
+        await expect(page1.get_by_role("heading", name="Ludo Game")).to_be_visible()
         await page1.screenshot(path="jules-scratch/verification/01_lobby.png")
         print("Screenshot 1: Lobby - Captured")
 
@@ -48,7 +48,7 @@ async def main():
         print("Game started.")
 
         # 7. Player 2 sends a chat message
-        await page2.get_by_placeholder("Send").fill("Hello from Player 2!")
+        await page2.locator("#chat-input").fill("Hello from Player 2!")
         await page2.get_by_role("button", name="Send").click()
         await expect(page1.get_by_text("yellow: Hello from Player 2!")).to_be_visible()
         print("Chat message sent and received.")
