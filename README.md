@@ -1,111 +1,84 @@
- # Ludo Multiplayer
+# Ludo Multiplayer
 
  A fast, modern, and highly polished Ludo game with Online Multiplayer and Local (Human vs AI) modes. Built with Node.js, Express, and Socket.IO on the backend and a custom-rendered board on the frontend. Comes with animated themes, sound, smart turn logic, and a slick lobby experience.
 
- ## ✨ Highlights
+ ## ✨ Features
 
- - Online multiplayer with room codes (up to 4 players)
- - Local mode: Human vs AI (2–4 players)
- - True Ludo rules with safe spots, captures, home paths, and turn timers
- - Polished visuals: animated themes (Cyberpunk, Egypt, Jurassic, Space)
- - In-game chat with toggle and message color by player
- - Smart UX: auto-move when only one token can move, bonus turns on six, capture bonuses
- - Anti-abuse rule: after two consecutive sixes, dice rolls are limited to 1–5
- - Responsive UI, sound effects, and persistent settings (theme, mute, chat visibility)
+ * **Online Multiplayer**: Play with up to 4 players in a private room.
+ * **Local Mode**: Play against friends or AI on a single device.
+ * **AI Player**: A smart AI opponent with configurable difficulty.
+ * **Step-by-Step Token Animations**: Smooth, step-by-step token movement animations using GSAP.
+ * **Animated Themes**: Choose from four animated themes: Cyberpunk, Ancient Egypt, Jurassic Jungle, and Outer Space.
+ * **Sound Effects**: A rich set of sound effects for an immersive experience.
+ * **In-Game Chat**: Communicate with other players in the game room.
+ * **Smart UX**: Auto-move when only one token can move, bonus turns on six, and capture bonuses.
+ * **Responsive UI**: The game is designed to work on all screen sizes.
+ * **Persistent Settings**: Your theme, mute, and chat visibility preferences are saved locally.
 
- ## 🧩 Architecture
+ ## 🎮 Game Rules & Mechanics
 
- - Backend: `Express` + `Socket.IO` (see `server.js`)
- - Game engines:
-	 - Multiplayer engine: `game.js`
-	 - Local engine (with AI option): `local-game.js`
- - Client: `index.html`, `script.js`, `style.css`, `lobby.css`
- - Assets: `assets/` (audio, images, icons)
+ * **Turn Order**: Red → Green → Yellow → Blue
+ * **Dice Roll Timer**: 30 seconds per turn in online multiplayer.
+ * **Starting a Token**: Requires a roll of 6.
+ * **Safe Spots**: 1, 9, 14, 22, 27, 35, 40, 48 (tokens on these spots cannot be captured).
+ * **Captures**: Landing on a square occupied by an opponent sends their token back to their base. Capturing grants an extra roll.
+ * **Home Path**: Each color has its own home path, which can only be entered by that color's tokens.
+ * **Bonus Turns**: An extra turn is granted for rolling a 6, capturing an opponent's token, or moving a token to the home space.
+ * **Triple Six Penalty**: Rolling three consecutive 6s results in a penalty, and the turn is passed to the next player.
 
  ## 🚀 Quick Start
 
  ### Prerequisites
- - Node.js 18+ (works on 22 as well)
 
- ### Install
+ * Node.js 18+
+
+ ### Installation
+
  ```bash
  npm install
  ```
 
- ### Run
+ ### Running the Game
+
  ```bash
  npm start
  ```
- The server starts on http://localhost:3000
 
- ### Play Online
- 1. Open the game in your browser
- 2. Click "Create Game" to get a room code
- 3. Share the code with friends; they Join using the code
- 4. Host clicks "Start Game" when 2–4 players are in
+ The server will start on `http://localhost:3000`.
 
- ### Play Local
- 1. Switch to Local Game
- 2. Choose number of players (2–4)
- 3. Choose Human or AI per color
- 4. Start and play on one device
+ ## 🛠️ Development
 
- ## 🎮 Rules & Mechanics
+ ### Architecture
 
- - Turn order (4 players): Red → Green → Yellow → Blue
- - Dice roll timer per turn: 30s
- - Starting a token: requires a six
- - Safe spots: 1, 9, 14, 22, 27, 35, 40, 48 (no captures here)
- - Captures: send opponent to base; capturing grants an extra roll
- - Home path per color with correct entrances and final home tile
- - Bonus turn: on rolling six or making a capture or reaching final home
- - Anti-abuse: after 2 consecutive sixes, next roll is 1–5 only
- - Auto-move: if only one token can move, it moves automatically after a brief delay
+ * **Backend**: Node.js, Express, Socket.IO (`src/server.js`, `src/game.js`)
+ * **Frontend**: HTML, CSS, JavaScript, GSAP (`public/`)
+ * **AI**: `public/ai-player.js`
+ * **Local Game Logic**: `public/local-game.js`
 
- ## 🗂️ Key Files
+ ### Contributing
 
- - `server.js` — Express + Socket.IO server, room management, relays moves
- - `game.js` — Multiplayer game logic and state machine
- - `local-game.js` — Local game logic with optional AI
- - `script.js` — Client UI, rendering, sockets, chat, themes, audio
- - `index.html` — App shell and UI controls
- - `style.css` / `lobby.css` — Styling for board and lobby
+ We welcome contributions to this project! We use a simple branching model and follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. Please see the `docs/CONTRIBUTING.md` file for more details.
 
- ## 🛠️ Development Notes
+ ### Testing
 
-### Contributing
-This project has a standardized development workflow. If you wish to contribute, please read the **[CONTRIBUTING.md](CONTRIBUTING.md)** file for guidelines on branching, commit messages, and pull requests.
+ The game includes a suite of tests to ensure its correctness. You can find the test files in the `unimportant` folder. To run the tests, use the following command:
 
-### Animations
-The game uses the [GSAP (GreenSock Animation Platform)](https://greensock.com/gsap/) library for all client-side animations. It is included via a CDN in `index.html`. New animations should leverage GSAP for performance and consistency. The animated dice roll in `script.js` serves as a good example.
+ ```bash
+ node unimportant/test-game-rules.js
+ ```
 
-### AI Development
-The AI logic is located in `ai-player.js` and is driven by a scoring heuristic in the `evaluateState` function. The AI has been configured to strongly prioritize moving tokens out of the base, especially in the early game.
+ ## ✅ Deployment
 
- - Hot reload isn’t configured; restart the server after backend changes
- - Client caches aggressively; do a hard refresh when editing `script.js`
- - Logs are written to console (consider log files for production)
+ The game is ready for production. The `main` branch is stable and can be deployed.
 
- ## 🧪 Sanity Utilities (optional)
- This repo includes some helper scripts used during development:
- - `verify-positions.js`, `test-paths.js`, `home-path-fix.js` – validate board coordinates and home-path logic
+ ### Verification Checklist
 
- Run them with Node if needed.
+ * **Core Game Rules**: All rules have been tested and verified.
+ * **Animation System**: The animation system is fully functional and has been tested in both local and online modes.
+ * **Multiplayer**: Both local and online multiplayer modes are working correctly.
+ * **UI/UX**: The UI is responsive and works on all screen sizes.
+ * **Performance**: The game is performant and has no memory leaks.
 
- ## 🔐 Hosting Tips
- - Set `PORT` env var for deployment platforms
- - Use a reverse proxy (Nginx) with WebSocket support for production
+ ## 📝 License
 
- ## 🙌 Credits
- - Built with vanilla JS, Socket.IO, and lots of love
- - Sounds and theme assets are bundled in `assets/`
-
- ## 🧭 Roadmap Ideas
- - Ranked matchmaking, reconnect support
- - Spectator mode and game replays
- - Bot difficulty levels and heuristics
-
- ---
-
- If you like this project, consider starring it and sharing a screenshot of your winning board!
-
+ This project is licensed under the MIT License.
