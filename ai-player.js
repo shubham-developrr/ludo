@@ -202,12 +202,12 @@ class AIPlayer {
             capture: 300,
             blockade: 50,
             threat: -200,
-            tokenOutOfYard: 150
+            tokenOutOfYard: 350
         };
 
         const gamePhase = this._getGamePhase(playerColor, gameState);
         if (gamePhase === 'EARLY_GAME') {
-            weights.tokenOutOfYard = 250;
+            weights.tokenOutOfYard = 400; // Heavily prioritize getting tokens out early
             weights.safety = 150;
             weights.capture = 200;
         } else if (gamePhase === 'END_GAME') {

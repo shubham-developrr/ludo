@@ -73,6 +73,15 @@
 
  ## 🛠️ Development Notes
 
+### Contributing
+This project has a standardized development workflow. If you wish to contribute, please read the **[CONTRIBUTING.md](CONTRIBUTING.md)** file for guidelines on branching, commit messages, and pull requests.
+
+### Animations
+The game uses the [GSAP (GreenSock Animation Platform)](https://greensock.com/gsap/) library for all client-side animations. It is included via a CDN in `index.html`. New animations should leverage GSAP for performance and consistency. The animated dice roll in `script.js` serves as a good example.
+
+### AI Development
+The AI logic is located in `ai-player.js` and is driven by a scoring heuristic in the `evaluateState` function. The AI has been configured to strongly prioritize moving tokens out of the base, especially in the early game.
+
  - Hot reload isn’t configured; restart the server after backend changes
  - Client caches aggressively; do a hard refresh when editing `script.js`
  - Logs are written to console (consider log files for production)

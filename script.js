@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHostId = null;
     let localGame = null;
     let isLocalMode = false;
+    let isDiceRolling = false;
 
     // --- Sound Manager ---
     const soundManager = new SoundManager();
@@ -438,13 +439,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const isMyTurnOnline = clientGameState.currentPlayerColor === myPlayerInfo?.color;
             const isMyTurnLocal = isLocalMode && localGame?.getState().currentPlayerType === 'human';
 
-            if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling') {
+            if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling' && !isDiceRolling) {
+                isDiceRolling = true;
                 soundManager.play('diceRollStart');
-                if (isLocalMode) {
-                    localGame.rollDice();
-                } else {
-                    socket.emit('rollDice');
-                }
+
+                gsap.timeline({
+                    onComplete: () => {
+                        if (isLocalMode) {
+                            localGame.rollDice();
+                        } else {
+                            socket.emit('rollDice');
+                        }
+                        // Reset properties and state
+                        gsap.set(dice, { rotation: 0, scale: 1 });
+                        isDiceRolling = false;
+                    }
+                })
+                .to(dice, {
+                    rotation: 360,
+                    scale: 1.2,
+                    duration: 0.4,
+                    ease: "power1.in"
+                })
+                .to(dice, {
+                    rotation: 720,
+                    scale: 1,
+                    duration: 0.4,
+                    ease: "power1.out"
+                });
             }
         });
         restartBtn.addEventListener('click', () => {
