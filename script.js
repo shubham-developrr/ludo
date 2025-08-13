@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         localGame = new LocalGame(players, () => {
+            // Animation-aware render - don't automatically update clientGameState
             if (localGame) render(localGame.getState());
         });
         
@@ -142,6 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         createBoard();
         createTokenElements(players);
+        
+        // Initialize clientGameState for animation detection (deep copy)
+        clientGameState = JSON.parse(JSON.stringify(localGame.getState()));
         
         // Render initial state
         render(localGame.getState());
@@ -230,9 +234,168 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const safeSpots = [1, 9, 14, 22, 27, 35, 40, 48];
 
-    let clientGameState = {};
+    let clientGameState = { players: {} };
     let tokenElements = {};
     let turnTimerInterval = null;
+    let isAnimating = false; // Prevent multiple animations
+    
+    // Animation helper functions
+    function calculateDiceSteps(fromPos, toPos) {
+        // Handle special cases
+        if (fromPos === -1) return 6; // Coming out of base
+        if (toPos === -2) return 1; // Going home
+        if (fromPos > 100 || toPos > 100) return Math.abs(toPos - fromPos); // Home path movement
+        
+        // Handle main board wrapping (1-52)
+        if (fromPos <= 52 && toPos <= 52) {
+            let steps = toPos - fromPos;
+            if (steps <= 0) {
+                steps += 52; // Wrapped around the board
+            }
+            return steps;
+        }
+        
+        return Math.abs(toPos - fromPos); // Fallback
+    }
+    
+    function calculateStepByStepPath(color, fromPos, toPos, diceValue) {
+        console.log(`calculateStepByStepPath: ${color} from ${fromPos} to ${toPos}, dice: ${diceValue}`);
+        const path = [];
+        
+        // Coming out of base
+        if (fromPos === -1 && diceValue === 6) {
+            path.push(getStartPosition(color));
+            console.log('Coming out of base, path:', path);
+            return path;
+        }
+        
+        // Going home
+        if (toPos === -2) {
+            path.push(-2);
+            console.log('Going home, path:', path);
+            return path;
+        }
+        
+        // Moving within home path
+        if (fromPos > 100 && toPos > 100) {
+            const homePrefix = getHomePrefix(color);
+            const fromIndex = fromPos - homePrefix;
+            const toIndex = toPos - homePrefix;
+            for (let i = fromIndex + 1; i <= toIndex; i++) {
+                path.push(homePrefix + i);
+            }
+            console.log('Moving within home path, path:', path);
+            return path;
+        }
+        
+        // Moving from main path to home path
+        if (fromPos <= 52 && toPos > 100) {
+            const homeEntrance = getHomeEntrance(color);
+            const homePrefix = getHomePrefix(color);
+            
+            // Walk to home entrance
+            let currentPos = fromPos;
+            while (currentPos !== homeEntrance) {
+                currentPos = (currentPos % 52) + 1;
+                path.push(currentPos);
+            }
+            
+            // Walk into home path
+            const stepsIntoHome = toPos - homePrefix;
+            for (let i = 1; i <= stepsIntoHome; i++) {
+                path.push(homePrefix + i);
+            }
+            console.log('Moving to home path, path:', path);
+            return path;
+        }
+        
+        // Normal movement on main path
+        let currentPos = fromPos;
+        for (let i = 0; i < diceValue; i++) {
+            currentPos = (currentPos % 52) + 1;
+            path.push(currentPos);
+        }
+        
+        console.log('Normal movement, path:', path);
+        return path;
+    }
+    
+    function getStartPosition(color) {
+        const positions = { red: 1, green: 14, yellow: 27, blue: 40 };
+        return positions[color];
+    }
+    
+    function getHomeEntrance(color) {
+        const positions = { red: 51, green: 12, yellow: 25, blue: 38 };
+        return positions[color];
+    }
+    
+    function getHomePrefix(color) {
+        const prefixes = { red: 100, green: 200, yellow: 300, blue: 400 };
+        return prefixes[color];
+    }
+    
+    function getElementForPosition(color, position, tokenId) {
+        if (position === -1) return document.getElementById(`${color}-yard-${tokenId}`);
+        if (position === -2) return document.querySelector('#home-triangle');
+        if (position > 100) return document.querySelector(`[data-home-path-index='${position}']`);
+        return document.querySelector(`[data-path-index='${position}']`);
+    }
+    
+    function animateTokenThroughPath(color, tokenId, path, onComplete) {
+        console.log(`Starting animation for ${color} token ${tokenId} through path:`, path);
+        
+        if (!tokenElements[color] || !tokenElements[color][tokenId] || path.length === 0) {
+            console.log(`Animation failed - missing elements or empty path`);
+            if (onComplete) onComplete();
+            return;
+        }
+        
+        const tokenElement = tokenElements[color][tokenId];
+        console.log(`Token element found:`, tokenElement);
+        
+        const timeline = gsap.timeline();
+        
+        tokenElement.style.zIndex = '100';
+        
+        path.forEach((position, index) => {
+            const targetElement = getElementForPosition(color, position, tokenId);
+            if (!targetElement) {
+                console.log(`No target element found for position ${position}`);
+                return;
+            }
+            
+            console.log(`Step ${index + 1}: Moving to position ${position}, element:`, targetElement);
+            
+            timeline
+                .to(tokenElement, {
+                    scale: 1.2,
+                    rotation: 180,
+                    duration: 0.15,
+                    ease: "power2.out"
+                })
+                .call(() => {
+                    targetElement.appendChild(tokenElement);
+                    if (index < path.length - 1) {
+                        soundManager.play('tokenMove');
+                    }
+                })
+                .to(tokenElement, {
+                    scale: 1,
+                    rotation: 0,
+                    duration: 0.15,
+                    ease: "power2.in"
+                });
+        });
+        
+        timeline.call(() => {
+            console.log(`Animation completed for ${color} token ${tokenId}`);
+            tokenElement.style.zIndex = '10';
+            if (onComplete) onComplete();
+        });
+        
+        return timeline;
+    }
 
     function createBoard() {
         board.innerHTML = `
@@ -289,6 +452,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tokenEl.addEventListener('click', () => {
                     if (tokenEl.classList.contains('movable')) {
+                        // Add simple click animation
+                        gsap.timeline()
+                            .to(tokenEl, {
+                                scale: 1.3,
+                                duration: 0.1,
+                                ease: "power2.out"
+                            })
+                            .to(tokenEl, {
+                                scale: 1,
+                                duration: 0.2,
+                                ease: "power2.in"
+                            });
+                        
                         soundManager.play('tokenMove');
                         if (isLocalMode && localGame) {
                             localGame.moveToken(color, i);
@@ -308,6 +484,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function render(gameState) {
+        console.log('=== RENDER CALLED ===');
+        console.log('New gameState:', gameState);
+        console.log('Current clientGameState:', clientGameState);
+        console.log('isAnimating:', isAnimating);
+        
+        // Skip render if animation is running
+        if (isAnimating) {
+            console.log('Skipping render - animation in progress');
+            return;
+        }
+
         // --- Sound Effects ---
         // Dice Roll End
         if (gameState.diceValue && gameState.diceValue !== clientGameState.diceValue) {
@@ -339,7 +526,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        clientGameState = gameState;
+        // Check for token movement and animate it
+        console.log('Checking for token movement...');
+        console.log('clientGameState.players:', clientGameState.players);
+        console.log('gameState.players:', gameState.players);
+        
+        if (clientGameState.players && gameState.players) {
+            console.log('Both player states exist, checking tokens...');
+            for (const color in gameState.players) {
+                console.log(`Checking color: ${color}`);
+                if (!clientGameState.players[color]) {
+                    console.log(`No old state for ${color}, skipping animation check`);
+                    continue;
+                }
+                
+                for (let i = 0; i < gameState.players[color].length; i++) {
+                    const oldToken = clientGameState.players[color][i];
+                    const newToken = gameState.players[color][i];
+                    
+                    console.log(`Token ${i}: old=${oldToken?.position}, new=${newToken?.position}`);
+                    
+                    if (oldToken && newToken && oldToken.position !== newToken.position) {
+                        console.log(`🎬 ANIMATING: ${color} token ${newToken.id} from ${oldToken.position} to ${newToken.position}`);
+                        
+                        // Token moved - animate it step by step
+                        const diceValue = gameState.diceValue || calculateDiceSteps(oldToken.position, newToken.position);
+                        const path = calculateStepByStepPath(color, oldToken.position, newToken.position, diceValue);
+                        
+                        if (path.length > 0) {
+                            isAnimating = true;
+                            animateTokenThroughPath(color, newToken.id, path, () => {
+                                isAnimating = false;
+                                clientGameState = JSON.parse(JSON.stringify(gameState));
+                                updateVisualElements(gameState);
+                            });
+                            return; // Exit early, animation will handle the rest
+                        }
+                    }
+                }
+            }
+        } else {
+            console.log('Missing player states - no animation check possible');
+        }
+
+        // No animation needed, update normally
+        console.log('No animation needed, updating clientGameState...');
+        clientGameState = JSON.parse(JSON.stringify(gameState));
+        console.log('Updated clientGameState:', clientGameState);
+        updateVisualElements(gameState);
+    }
+    
+    function updateVisualElements(gameState) {
         const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
 
         // Handle timer display only for online games
@@ -389,7 +626,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else { // Main path
                     targetCell = document.querySelector(`[data-path-index='${token.position}']`);
                 }
-                if (targetCell && tokenEl.parentElement !== targetCell) {
+                
+                // Only move if not already in correct position and not animating
+                if (targetCell && tokenEl.parentElement !== targetCell && !isAnimating) {
                     targetCell.appendChild(tokenEl);
                 }
                 tokenEl.style.display = 'flex'; // Ensure token is visible
@@ -439,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isMyTurnOnline = clientGameState.currentPlayerColor === myPlayerInfo?.color;
             const isMyTurnLocal = isLocalMode && localGame?.getState().currentPlayerType === 'human';
 
-            if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling' && !isDiceRolling) {
+            if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling' && !isDiceRolling && !isAnimating) {
                 isDiceRolling = true;
                 soundManager.play('diceRollStart');
 
@@ -537,6 +776,26 @@ document.addEventListener('DOMContentLoaded', () => {
         
         createBoard();
         createTokenElements(players);
+        
+        // Initialize clientGameState for animation detection
+        clientGameState = { 
+            players: {},
+            currentPlayerColor: null,
+            diceValue: null,
+            turnState: null,
+            movableTokens: [],
+            winner: null,
+            isLocalGame: false
+        };
+        // Initialize all players with tokens in base
+        players.forEach(player => {
+            clientGameState.players[player.color] = [
+                { id: 0, position: -1, isHome: false },
+                { id: 1, position: -1, isHome: false },
+                { id: 2, position: -1, isHome: false },
+                { id: 3, position: -1, isHome: false }
+            ];
+        });
     });
 
     socket.on('gameStateUpdate', render);

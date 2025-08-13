@@ -391,6 +391,9 @@ input:checked + .slider:before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    /* Enable hardware acceleration for smoother animations */
+    will-change: transform;
+    backface-visibility: hidden;
 }
 .red-token { background-color: var(--red); color: var(--red); }
 .green-token { background-color: var(--green); color: var(--green); }
