@@ -412,6 +412,28 @@ input:checked + .slider:before {
     50% { transform: translate(-50%, -50%) scale(1.1); }
     100% { transform: translate(-50%, -50%) scale(1); }
 }
+
+@keyframes hop-in {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+    60% {
+        transform: translate(-50%, -100%) scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.hopping {
+    /* Use a very short, quick hop */
+    animation: hop-in 0.3s ease-out;
+    /* Ensure the hopping token is visible above others */
+    z-index: 50;
+}
 .controls {
     display: flex;
     align-items: center;

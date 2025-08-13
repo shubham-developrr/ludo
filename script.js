@@ -233,6 +233,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let tokenElements = {};
     let turnTimerInterval = null;
 
+    // --- Animation System ---
+    let animationQueue = [];
+    let isAnimating = false;
+
+    // Processes the next animation in the queue.
+    function processAnimationQueue() {
+        if (isAnimating || animationQueue.length === 0) {
+            return;
+        }
+        isAnimating = true;
+        const animationTask = animationQueue.shift();
+
+        // Each task is a function that takes a callback to signal completion.
+        animationTask(() => {
+            isAnimating = false;
+            processAnimationQueue(); // Process next item in queue
+        });
+    }
+
+    // Adds a new animation task to the queue.
+    function addToAnimationQueue(task) {
+        animationQueue.push(task);
+        // If the system is not currently animating, start it.
+        if (!isAnimating) {
+            processAnimationQueue();
+        }
+    }
+
+
     function createBoard() {
         board.innerHTML = `
             <div id="red-base" class="base"><div class="home-area"></div></div>
@@ -287,6 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tokenEl.id = `${color}-token-${i}`;
 
                 tokenEl.addEventListener('click', () => {
+                    if (isAnimating) return; // Prevent action while animating
+
                     if (tokenEl.classList.contains('movable')) {
                         soundManager.play('tokenMove');
                         if (isLocalMode && localGame) {
@@ -306,145 +337,231 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // --- Animation and Pathing Logic ---
+
+    function getCellElementForPosition(pos) {
+        if (pos === -1) return null; // In base, handled differently
+        if (pos === -2) return document.querySelector('#home-triangle');
+        if (pos > 100) return document.querySelector(`[data-home-path-index='${pos}']`);
+        return document.querySelector(`[data-path-index='${pos}']`);
+    }
+
+    // --- Path Calculation Helpers (mirrored from game.js) ---
+    function getStartPosition(color) {
+        const startPositions = { red: 1, green: 14, yellow: 27, blue: 40 };
+        return startPositions[color];
+    }
+
+    function getHomeEntrancePosition(color) {
+        const homeEntrances = { red: 51, green: 12, yellow: 25, blue: 38 };
+        return homeEntrances[color];
+    }
+
+    function getHomePathPrefix(color) {
+        const homePrefixes = { red: 100, green: 200, yellow: 300, blue: 400 };
+        return homePrefixes[color];
+    }
+
+    function calculatePath(fromPos, diceValue, color) {
+        const path = [];
+        let currentPos = fromPos;
+
+        if (currentPos === -1) {
+            if (diceValue === 6) {
+                path.push(getStartPosition(color));
+            }
+            return path;
+        }
+
+        const homeEntrance = getHomeEntrancePosition(color);
+
+        for (let i = 0; i < diceValue; i++) {
+            let nextPos;
+            if (currentPos > 100) { // In home path
+                nextPos = currentPos + 1;
+            } else if (currentPos === homeEntrance) { // At home entrance
+                nextPos = getHomePathPrefix(color) + 1;
+            } else if (currentPos === 52) { // At the wrap-around point
+                nextPos = 1;
+            } else { // Normal path
+                nextPos = currentPos + 1;
+            }
+            path.push(nextPos);
+            currentPos = nextPos;
+        }
+        return path;
+    }
+
+
     function render(gameState) {
-        // --- Sound Effects ---
-        // Dice Roll End
-        if (gameState.diceValue && gameState.diceValue !== clientGameState.diceValue) {
-            soundManager.play('diceRollEnd');
-            if (gameState.diceValue === 6) {
-                soundManager.play('rollingASix');
+        const oldGameState = clientGameState;
+        const newGameState = gameState;
+
+        // --- Sound Effects and Event Detection ---
+        let movedTokenInfo = null;
+        if (oldGameState.players) {
+            // Dice Roll Sound
+            if (newGameState.diceValue && newGameState.diceValue !== oldGameState.diceValue) {
+                soundManager.play('diceRollEnd');
+                if (newGameState.diceValue === 6) soundManager.play('rollingASix');
             }
-        }
-        // Your Turn Alert
-        const oldPlayer = clientGameState.currentPlayerColor;
-        const newPlayer = gameState.currentPlayerColor;
-        if (newPlayer !== oldPlayer) {
-            const isMyTurnOnline = !gameState.isLocalGame && myPlayerInfo && newPlayer === myPlayerInfo.color;
-            const isHumanTurnLocal = gameState.isLocalGame && gameState.currentPlayerType === 'human';
-            if (isMyTurnOnline || isHumanTurnLocal) {
-                soundManager.play('yourTurnAlert');
+            // Turn Alert Sound
+            if (newGameState.currentPlayerColor !== oldGameState.currentPlayerColor) {
+                const isMyTurnOnline = !newGameState.isLocalGame && myPlayerInfo && newGameState.currentPlayerColor === myPlayerInfo.color;
+                const isHumanTurnLocal = newGameState.isLocalGame && newGameState.currentPlayerType === 'human';
+                if (isMyTurnOnline || isHumanTurnLocal) soundManager.play('yourTurnAlert');
             }
-        }
-        // Capture and Home
-        if (gameState.lastMoveEvents) {
-            if (gameState.lastMoveEvents.capture) {
-                soundManager.play('tokenCapture');
+             // Last Move Sounds (Capture, Home, etc.)
+            if (newGameState.lastMoveEvents) {
+                if (newGameState.lastMoveEvents.capture) soundManager.play('tokenCapture');
+                if (newGameState.lastMoveEvents.home) soundManager.play('tokenSafeHome');
+                if (newGameState.lastMoveEvents.tripleSixPenalty) soundManager.play('tripleSixPenalty');
             }
-            if (gameState.lastMoveEvents.home) {
-                soundManager.play('tokenSafeHome');
-            }
-            if (gameState.lastMoveEvents.tripleSixPenalty) {
-                soundManager.play('tripleSixPenalty');
+
+            // Detect which token (if any) moved
+            for (const color in newGameState.players) {
+                if (!oldGameState.players[color]) continue;
+                for (let i = 0; i < newGameState.players[color].length; i++) {
+                    const newToken = newGameState.players[color][i];
+                    const oldToken = oldGameState.players[color][i];
+                    if (newToken.position !== oldToken.position) {
+                        movedTokenInfo = {
+                            tokenEl: tokenElements[color][i],
+                            fromPos: oldToken.position,
+                            diceValue: newGameState.diceValue,
+                            color: color
+                        };
+                        break;
+                    }
+                }
+                if (movedTokenInfo) break;
             }
         }
 
-        clientGameState = gameState;
-        const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = gameState;
-
-        // Handle timer display only for online games
+        // --- Update UI Elements ---
+        // Update timer, status, dice text, etc.
+        const { players, currentPlayerColor, diceValue, turnState, movableTokens, winner, turnEndsAt, isLocalGame, currentPlayerType } = newGameState;
         if (turnTimerInterval) clearInterval(turnTimerInterval);
-        
         if (!isLocalGame && turnEndsAt) {
-            // Only show timer for online multiplayer games
             turnTimerInterval = setInterval(() => {
                 const timeLeft = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+                status.textContent = `${currentPlayerColor}'s turn (${timeLeft}s)`;
                 if (timeLeft <= 0) {
-                    // Timer ran out - emit timeout event to server
                     clearInterval(turnTimerInterval);
                     socket.emit('turnTimeout');
                     status.textContent = `${currentPlayerColor}'s turn (Time's up!)`;
-                    return;
                 }
-                status.textContent = `${currentPlayerColor}'s turn (${timeLeft}s)`;
             }, 500);
-        } else if (isLocalGame) {
-            // Local game - no timer, just show current player
-            if (currentPlayerType === 'ai') {
-                status.textContent = `${currentPlayerColor} (AI) is thinking...`;
-            } else {
-                status.textContent = `${currentPlayerColor}'s turn`;
-            }
+        } else {
+             status.textContent = isLocalGame && currentPlayerType === 'ai' ? `${currentPlayerColor} (AI) is thinking...` : `${currentPlayerColor}'s turn`;
         }
+        dice.textContent = diceValue ? ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1] : '🎲';
+        status.style.color = staticColors[currentPlayerColor];
+        dice.style.borderColor = staticColors[currentPlayerColor];
 
+        // --- Place Tokens ---
+        // Instantly move all tokens to their final positions, EXCEPT the one that will be animated.
         Object.keys(tokenElements).forEach(color => {
-            if (!players[color]) { // Player might have disconnected
+            if (!players[color]) {
                  tokenElements[color].forEach(el => el.style.display = 'none');
                  return;
             }
             players[color].forEach(token => {
                 const tokenEl = tokenElements[color][token.id];
+                // If this token is the one we're about to animate, don't touch it.
+                if (movedTokenInfo && tokenEl === movedTokenInfo.tokenEl) return;
+
                 let targetCell;
-                if (token.position === -1) { // In base
+                if (token.position === -1) {
                     targetCell = document.getElementById(`${color}-yard-${token.id}`);
-                } else if (token.position === -2) { // At home or disconnected
-                    if (token.isHome) {
-                        targetCell = document.querySelector(`#home-triangle`);
-                    } else {
-                        tokenEl.style.display = 'none';
-                        return;
-                    }
-                } else if (token.position > 100) { // Home path
-                    targetCell = document.querySelector(`[data-home-path-index='${token.position}']`);
-                } else { // Main path
-                    targetCell = document.querySelector(`[data-path-index='${token.position}']`);
+                } else {
+                    targetCell = getCellElementForPosition(token.position);
                 }
+
                 if (targetCell && tokenEl.parentElement !== targetCell) {
                     targetCell.appendChild(tokenEl);
                 }
-                tokenEl.style.display = 'flex'; // Ensure token is visible
+                tokenEl.style.display = 'flex';
             });
         });
 
+        // --- Queue Animations ---
+        if (movedTokenInfo) {
+            const { tokenEl, fromPos, diceValue, color } = movedTokenInfo;
+            const path = calculatePath(fromPos, diceValue, color);
+
+            path.forEach(pos => {
+                addToAnimationQueue(completionCallback => {
+                    const targetCell = getCellElementForPosition(pos);
+                    if (targetCell) {
+                        targetCell.appendChild(tokenEl);
+                        tokenEl.classList.add('hopping');
+                        setTimeout(() => {
+                            tokenEl.classList.remove('hopping');
+                            completionCallback();
+                        }, 300); // Animation duration
+                    } else {
+                        completionCallback(); // Skip if cell not found
+                    }
+                });
+            });
+        }
+
+        // --- Update Movable/Current Player Highlighting ---
         document.querySelectorAll('.movable').forEach(el => el.classList.remove('movable'));
         document.querySelectorAll('.current-player').forEach(el => el.classList.remove('current-player'));
         
-        // Add current-player class to current player's tokens for better layering on safe spots
         if (tokenElements[currentPlayerColor]) {
-            tokenElements[currentPlayerColor].forEach(tokenEl => {
-                tokenEl.classList.add('current-player');
-            });
+            tokenElements[currentPlayerColor].forEach(tokenEl => tokenEl.classList.add('current-player'));
         }
         
-        if (movableTokens && (!isLocalGame || currentPlayerType === 'human')) {
-            if (!isLocalGame && currentPlayerColor === myPlayerInfo.color) {
-                movableTokens.forEach(t => {
-                    tokenElements[t.color][t.id].classList.add('movable');
-                });
-            } else if (isLocalGame && currentPlayerType === 'human') {
-                movableTokens.forEach(t => {
-                    tokenElements[t.color][t.id].classList.add('movable');
-                });
-            }
+        const canHighlightMovable = !isLocalGame ? (currentPlayerColor === myPlayerInfo.color) : (currentPlayerType === 'human');
+        if (movableTokens && canHighlightMovable) {
+            movableTokens.forEach(t => tokenElements[t.color][t.id].classList.add('movable'));
         }
-        
-        dice.textContent = diceValue ? ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][diceValue - 1] : '🎲';
-        status.style.color = staticColors[currentPlayerColor];
-        dice.style.borderColor = staticColors[currentPlayerColor];
-        
+
+        // --- Handle Winner ---
         if (winner) {
-            if (!clientGameState.winner) { // Play sound only on first detection
-                soundManager.play('victory');
-            }
+            if (!oldGameState.winner) soundManager.play('victory');
             clearInterval(turnTimerInterval);
             winnerMessage.textContent = `${winner} wins!`;
             winnerOverlay.style.display = 'flex';
         } else {
             winnerOverlay.style.display = 'none';
         }
+
+        // --- Final State Update ---
+        clientGameState = newGameState;
     }
 
     function setupGameListeners() {
         dice.addEventListener('click', () => {
+            if (isAnimating) return; // Prevent action while animating
+
             const isMyTurnOnline = clientGameState.currentPlayerColor === myPlayerInfo?.color;
             const isMyTurnLocal = isLocalMode && localGame?.getState().currentPlayerType === 'human';
 
             if ((isMyTurnOnline || isMyTurnLocal) && clientGameState.turnState === 'rolling') {
-                soundManager.play('diceRollStart');
-                if (isLocalMode) {
-                    localGame.rollDice();
-                } else {
-                    socket.emit('rollDice');
-                }
+
+                addToAnimationQueue((completionCallback) => {
+                    dice.classList.add('rolling');
+                    soundManager.play('diceRollStart');
+
+                    setTimeout(() => {
+                        dice.classList.remove('rolling');
+
+                        // Actually roll the dice after animation
+                        if (isLocalMode) {
+                            localGame.rollDice();
+                        } else {
+                            socket.emit('rollDice');
+                        }
+
+                        // The game state update from the roll will trigger a render.
+                        // We'll add a short delay to let the dice value render before the next animation.
+                        setTimeout(completionCallback, 100);
+                    }, 500); // Corresponds to animation duration in CSS
+                });
             }
         });
         restartBtn.addEventListener('click', () => {
