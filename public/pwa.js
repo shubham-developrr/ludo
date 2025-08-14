@@ -9,13 +9,27 @@ class PWAManager {
   }
   
   init() {
-    this.checkPWARequirements();
-    this.registerServiceWorker();
-    this.setupInstallPrompt();
+    // Remove existing toasts at startup
+    this.removeExistingToasts();
+    
+    // Check if app is already installed
+    this.checkIfInstalled();
+    
+    // Only proceed with install checks if not already installed
+    if (!this.isInstalled) {
+      this.checkPWARequirements();
+      this.registerServiceWorker();
+      this.setupInstallPrompt();
+    }
+    
     this.setupOfflineDetection();
     this.setupUpdateDetection();
     this.createInstallButton();
-    this.checkIfInstalled();
+  }
+  
+  removeExistingToasts() {
+    const existingToasts = document.querySelectorAll('.pwa-toast');
+    existingToasts.forEach(toast => toast.remove());
   }
   
   checkPWARequirements() {
@@ -46,7 +60,7 @@ class PWAManager {
     console.log('PWA Debug: beforeinstallprompt events will be logged...');
     
     if (!isHTTPS && location.hostname !== 'localhost') {
-      this.showToast('PWA requires HTTPS to install. Deploy to a secure host.', 'warning', true);
+      this.showToast('PWA requires HTTPS to install. Deploy to a secure host.', 'warning');
     }
   }
   
@@ -93,9 +107,9 @@ class PWAManager {
       this.showToast('Ludo Game installed successfully!', 'success');
     });
     
-    // Manual check for installation criteria
+    // Manual check for installation criteria (only if not already installed)
     setTimeout(() => {
-      if (!this.deferredPrompt) {
+      if (!this.isInstalled && !this.deferredPrompt) {
         console.log('PWA Debug: No install prompt received. Checking criteria...');
         this.checkInstallCriteria();
       }
@@ -103,16 +117,18 @@ class PWAManager {
   }
   
   checkInstallCriteria() {
+    // Early return if already installed
+    if (this.isInstalled) {
+      console.log('PWA Debug: App is already installed, skipping criteria check.');
+      this.hideInstallButton();
+      return;
+    }
+
     const issues = [];
     
     // Check HTTPS
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
       issues.push('Requires HTTPS');
-    }
-    
-    // Check if already installed
-    if (this.isInstalled) {
-      issues.push('Already installed');
     }
     
     // Check service worker
@@ -123,7 +139,8 @@ class PWAManager {
     if (issues.length > 0) {
       console.log('PWA Debug: Install criteria not met:', issues);
       const message = `Cannot install: ${issues.join(', ')}`;
-      this.showToast(message, 'warning', true);
+      // Show non-persistent toast instead of persistent one
+      this.showToast(message, 'warning');
     } else {
       console.log('PWA Debug: All criteria met, but no install prompt. This may be normal on some browsers.');
     }
@@ -166,12 +183,14 @@ class PWAManager {
     // Check if app is running in standalone mode
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
       this.isInstalled = true;
+      this.hideInstallButton();
       console.log('PWA: App is running in standalone mode');
     }
     
     // Check if app is running as PWA on iOS
     if (window.navigator.standalone === true) {
       this.isInstalled = true;
+      this.hideInstallButton();
       console.log('PWA: App is running as PWA on iOS');
     }
   }
