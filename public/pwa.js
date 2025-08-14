@@ -25,6 +25,7 @@ class PWAManager {
     this.setupOfflineDetection();
     this.setupUpdateDetection();
     this.createInstallButton();
+    this.createUpdateButton();
   }
   
   removeExistingToasts() {
@@ -176,6 +177,11 @@ class PWAManager {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       });
+      
+      // Periodically check for updates (every 5 minutes)
+      setInterval(() => {
+        this.checkForUpdates();
+      }, 300000); // 5 minutes
     }
   }
   
@@ -320,15 +326,14 @@ class PWAManager {
   }
   
   showUpdateAvailable() {
+    // Show the update button
+    this.showUpdateButton();
+    
+    // Also show a subtle toast notification that auto-dismisses
     const updateToast = this.createToast(
-      'New version available! Click to update.',
+      'New version available!',
       'info',
-      true,
-      () => {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-        }
-      }
+      false // Non-persistent - will auto-dismiss
     );
     
     updateToast.classList.add('update-toast');
@@ -405,6 +410,81 @@ class PWAManager {
     }
     return { isOfflineReady: false };
   }
+  
+  createUpdateButton() {
+    // Create update button
+    const updateButton = document.createElement('button');
+    updateButton.id = 'pwa-update-btn';
+    updateButton.className = 'pwa-update-btn hidden';
+    updateButton.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+      Update App
+    `;
+    updateButton.addEventListener('click', () => this.promptUpdate());
+    
+    // Add to UI controls
+    const uiControls = document.querySelector('.ui-controls-top-right');
+    if (uiControls) {
+      // Insert before the install button or at the beginning
+      const installButton = document.getElementById('pwa-install-btn');
+      if (installButton) {
+        uiControls.insertBefore(updateButton, installButton);
+      } else {
+        uiControls.insertBefore(updateButton, uiControls.firstChild);
+      }
+    } else {
+      document.body.appendChild(updateButton);
+    }
+  }
+  
+  showUpdateButton() {
+    const updateButton = document.getElementById('pwa-update-btn');
+    if (updateButton) {
+      updateButton.classList.remove('hidden');
+    }
+  }
+  
+  hideUpdateButton() {
+    const updateButton = document.getElementById('pwa-update-btn');
+    if (updateButton) {
+      updateButton.classList.add('hidden');
+    }
+  }
+  
+  async promptUpdate() {
+    try {
+      // Send message to service worker to skip waiting
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+        
+        // Reload the page to load the new version
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('PWA: Update failed', error);
+      this.showToast('Update failed. Please try again later.', 'error');
+    }
+  }
+  
+  // Method to manually check for updates
+  async checkForUpdates() {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          // Force update check
+          await registration.update();
+          this.showToast('Checking for updates...', 'info');
+        }
+      } catch (error) {
+        console.error('PWA: Update check failed', error);
+        this.showToast('Failed to check for updates', 'error');
+      }
+    }
+  }
+
 }
 
 // CSS for PWA components
@@ -431,6 +511,31 @@ const pwaStyles = `
   }
   
   .pwa-install-btn.hidden {
+    display: none;
+  }
+  
+  .pwa-update-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-right: 8px;
+  }
+  
+  .pwa-update-btn:hover {
+    background: #1976D2;
+    transform: translateY(-1px);
+  }
+  
+  .pwa-update-btn.hidden {
     display: none;
   }
   
