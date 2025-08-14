@@ -1,8 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
+    // Check URL parameters for PWA functionality
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const isOffline = urlParams.get('offline') === 'true';
+    
+    const socket = !isOffline ? io() : null;
 
     // Add initial lobby screen class
     document.body.classList.add('lobby-screen');
+
+    // Handle offline mode
+    if (isOffline) {
+        showOfflineIndicator();
+    }
+
+    // Auto-switch to local mode if specified in URL
+    if (mode === 'local') {
+        setTimeout(() => switchToLocalMode(), 100);
+    }
 
     // --- DOM Elements ---
     const lobbyContainer = document.getElementById('lobby-container');
@@ -62,6 +77,36 @@ document.addEventListener('DOMContentLoaded', () => {
         isLocalMode = true;
     }
 
+    // Show offline indicator
+    function showOfflineIndicator() {
+        // Disable online mode
+        onlineModeBtn.disabled = true;
+        onlineModeBtn.style.opacity = '0.5';
+        onlineModeBtn.title = 'Online mode not available offline';
+        
+        // Auto-switch to local mode
+        switchToLocalMode();
+        
+        // Show offline message
+        const offlineMsg = document.createElement('div');
+        offlineMsg.className = 'offline-notice';
+        offlineMsg.innerHTML = '🔌 Playing offline - only local games available';
+        offlineMsg.style.cssText = `
+            background: #ff9800;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        `;
+        
+        const lobbyBox = document.querySelector('.lobby-box');
+        if (lobbyBox) {
+            lobbyBox.insertBefore(offlineMsg, lobbyBox.firstChild.nextSibling);
+        }
+    }
+
     // Player count change handler
     function updatePlayerConfigs() {
         const playerCount = parseInt(playerCountSelect.value);
@@ -90,16 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Online mode
         createGameBtn.addEventListener('click', () => {
             soundManager.play('buttonClick');
-            socket.emit('createGame');
+            if (socket) socket.emit('createGame');
         });
         joinGameBtn.addEventListener('click', () => {
             soundManager.play('buttonClick');
             const code = roomCodeInput.value.trim();
-            if (code) socket.emit('joinGame', code);
+            if (code && socket) socket.emit('joinGame', code);
         });
         startGameBtn.addEventListener('click', () => {
             soundManager.play('buttonClick');
-            socket.emit('startGame');
+            if (socket) socket.emit('startGame');
         });
         
         // Local mode
@@ -151,64 +196,67 @@ document.addEventListener('DOMContentLoaded', () => {
         render(localGame.getState());
     }
 
-    socket.on('gameCreated', ({ roomCode, player, hostId }) => {
-        myPlayerInfo = player;
-        currentHostId = hostId;
-        lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
-        createGameBtn.style.display = 'none';
-        roomInfo.style.display = 'block';
-        roomCodeDisplay.textContent = roomCode;
-    });
-
-    socket.on('gameJoined', ({ roomCode, player, hostId }) => {
-        myPlayerInfo = player;
-        currentHostId = hostId;
-        lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
-        createGameBtn.style.display = 'none';
-        roomInfo.style.display = 'block';
-        roomCodeDisplay.textContent = roomCode;
-    });
-
-    socket.on('playerListUpdate', (players) => {
-        playerList.innerHTML = '';
-        players.forEach(p => {
-            const playerEl = document.createElement('div');
-            playerEl.classList.add('player-list-item');
-            playerEl.innerHTML = `
-                <span class="player-color-dot" style="background-color: ${p.color};"></span>
-                <span class="player-name">Player (${p.color})${p.id === myPlayerInfo.id ? ' (You)' : ''}</span>
-            `;
-            if (myPlayerInfo.id === currentHostId && p.id !== myPlayerInfo.id) {
-                const kickBtn = document.createElement('button');
-                kickBtn.className = 'kick-btn';
-                kickBtn.innerHTML = '&times;';
-                kickBtn.onclick = () => socket.emit('kickPlayer', p.id);
-                playerEl.appendChild(kickBtn);
-            }
-            playerList.appendChild(playerEl);
+    // Socket event listeners (only if socket is available)
+    if (socket) {
+        socket.on('gameCreated', ({ roomCode, player, hostId }) => {
+            myPlayerInfo = player;
+            currentHostId = hostId;
+            lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
+            createGameBtn.style.display = 'none';
+            roomInfo.style.display = 'block';
+            roomCodeDisplay.textContent = roomCode;
         });
 
-        if (myPlayerInfo.id === currentHostId) {
-            startGameBtn.style.display = 'block';
-            startGameBtn.disabled = players.length < 2;
-        } else {
-            startGameBtn.style.display = 'none';
-        }
-    });
+        socket.on('gameJoined', ({ roomCode, player, hostId }) => {
+            myPlayerInfo = player;
+            currentHostId = hostId;
+            lobbyContainer.querySelector('.lobby-box .join-game-section').style.display = 'none';
+            createGameBtn.style.display = 'none';
+            roomInfo.style.display = 'block';
+            roomCodeDisplay.textContent = roomCode;
+        });
 
-    socket.on('hostUpdate', (newHostId) => {
-        currentHostId = newHostId;
-    });
+        socket.on('playerListUpdate', (players) => {
+            playerList.innerHTML = '';
+            players.forEach(p => {
+                const playerEl = document.createElement('div');
+                playerEl.classList.add('player-list-item');
+                playerEl.innerHTML = `
+                    <span class="player-color-dot" style="background-color: ${p.color};"></span>
+                    <span class="player-name">Player (${p.color})${p.id === myPlayerInfo.id ? ' (You)' : ''}</span>
+                `;
+                if (myPlayerInfo.id === currentHostId && p.id !== myPlayerInfo.id) {
+                    const kickBtn = document.createElement('button');
+                    kickBtn.className = 'kick-btn';
+                    kickBtn.innerHTML = '&times;';
+                    kickBtn.onclick = () => socket.emit('kickPlayer', p.id);
+                    playerEl.appendChild(kickBtn);
+                }
+                playerList.appendChild(playerEl);
+            });
 
-    socket.on('kicked', () => {
-        alert('You have been kicked from the room.');
-        window.location.reload();
-    });
+            if (myPlayerInfo.id === currentHostId) {
+                startGameBtn.style.display = 'block';
+                startGameBtn.disabled = players.length < 2;
+            } else {
+                startGameBtn.style.display = 'none';
+            }
+        });
 
-    socket.on('lobbyError', (message) => {
-        lobbyError.textContent = message;
-        setTimeout(() => { lobbyError.textContent = ''; }, 3000);
-    });
+        socket.on('hostUpdate', (newHostId) => {
+            currentHostId = newHostId;
+        });
+
+        socket.on('kicked', () => {
+            alert('You have been kicked from the room.');
+            window.location.reload();
+        });
+
+        socket.on('lobbyError', (message) => {
+            lobbyError.textContent = message;
+            setTimeout(() => { lobbyError.textContent = ''; }, 3000);
+        });
+    }
 
 
     // ################# GAME LOGIC #################
@@ -468,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         soundManager.play('tokenMove');
                         if (isLocalMode && localGame) {
                             localGame.moveToken(color, i);
-                        } else {
+                        } else if (socket) {
                             socket.emit('moveToken', { color: color, tokenId: i });
                         }
                     }
@@ -765,40 +813,65 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('orientationchange', handleResize);
     }
 
-    socket.on('gameStarted', ({ players }) => {
-        soundManager.play('gameStart');
-        lobbyContainer.style.display = 'none';
-        gameContainer.style.display = 'flex';
-        
-        // Add online game class to body for CSS styling
-        document.body.classList.remove('lobby-screen', 'local-game');
-        document.body.classList.add('online-game');
-        
-        createBoard();
-        createTokenElements(players);
-        
-        // Initialize clientGameState for animation detection
-        clientGameState = { 
-            players: {},
-            currentPlayerColor: null,
-            diceValue: null,
-            turnState: null,
-            movableTokens: [],
-            winner: null,
-            isLocalGame: false
-        };
-        // Initialize all players with tokens in base
-        players.forEach(player => {
-            clientGameState.players[player.color] = [
-                { id: 0, position: -1, isHome: false },
-                { id: 1, position: -1, isHome: false },
-                { id: 2, position: -1, isHome: false },
-                { id: 3, position: -1, isHome: false }
-            ];
+    // Socket event listeners for game events (only if socket is available)
+    if (socket) {
+        socket.on('gameStarted', ({ players }) => {
+            soundManager.play('gameStart');
+            lobbyContainer.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            
+            // Add online game class to body for CSS styling
+            document.body.classList.remove('lobby-screen', 'local-game');
+            document.body.classList.add('online-game');
+            
+            createBoard();
+            createTokenElements(players);
+            
+            // Initialize clientGameState for animation detection
+            clientGameState = { 
+                players: {},
+                currentPlayerColor: null,
+                diceValue: null,
+                turnState: null,
+                movableTokens: [],
+                winner: null,
+                isLocalGame: false
+            };
+            // Initialize all players with tokens in base
+            players.forEach(player => {
+                clientGameState.players[player.color] = [
+                    { id: 0, position: -1, isHome: false },
+                    { id: 1, position: -1, isHome: false },
+                    { id: 2, position: -1, isHome: false },
+                    { id: 3, position: -1, isHome: false }
+                ];
+            });
         });
-    });
 
-    socket.on('gameStateUpdate', render);
+        socket.on('gameStateUpdate', render);
+        
+        socket.on('newMessage', ({ senderColor, message }) => {
+            soundManager.play('chatMessage');
+            const item = document.createElement('li');
+            const colorSpan = document.createElement('span');
+            colorSpan.textContent = `${senderColor}: `;
+            colorSpan.style.color = staticColors[senderColor];
+            colorSpan.classList.add('chat-player-color');
+
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = message;
+            messageSpan.classList.add('chat-message');
+
+            item.appendChild(colorSpan);
+            item.appendChild(messageSpan);
+            chatMessages.appendChild(item);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        socket.on('connect_error', (err) => {
+            lobbyError.textContent = `Connection failed: ${err.message}. Please refresh.`;
+        });
+    }
     
     // --- CHAT LOGIC ---
     const chatForm = document.getElementById('chat-form');
@@ -829,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         if (chatInput.value) {
             soundManager.play('buttonClick');
-            socket.emit('sendMessage', chatInput.value);
+            if (socket) socket.emit('sendMessage', chatInput.value);
             chatInput.value = '';
         }
     });
