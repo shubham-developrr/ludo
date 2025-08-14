@@ -150,8 +150,14 @@ async function cacheFirst(request) {
   } catch (error) {
     console.error('Service Worker: Cache-first strategy failed', error);
     
-    // Return offline page for navigation requests
+    // Return offline page for navigation requests only if we're actually offline
     if (request.destination === 'document') {
+      // Try to return the main page from cache first
+      const cachedMain = await caches.match('/');
+      if (cachedMain) {
+        return cachedMain;
+      }
+      // If main page not cached, return offline page
       return caches.match('/offline.html');
     }
     

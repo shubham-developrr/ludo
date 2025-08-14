@@ -133,11 +133,21 @@ class PWAManager {
     window.addEventListener('online', () => {
       this.showToast('Connection restored', 'success');
       this.updateOnlineStatus(true);
+      
+      // Remove offline indicator if it exists
+      if (window.removeOfflineIndicator) {
+        window.removeOfflineIndicator();
+      }
     });
     
     window.addEventListener('offline', () => {
       this.showToast('Playing offline - some features may be limited', 'warning');
       this.updateOnlineStatus(false);
+      
+      // Show offline indicator if needed
+      if (window.showOfflineIndicator) {
+        window.showOfflineIndicator();
+      }
     });
     
     // Initial status

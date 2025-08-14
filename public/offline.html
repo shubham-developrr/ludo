@@ -84,14 +84,27 @@
     
     <script>
         function startOfflineGame() {
-            // Redirect to main page with local mode
-            window.location.href = '/?mode=local&offline=true';
+            // Check if we're in an installed PWA
+            const isPWAInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            
+            if (isPWAInstalled && navigator.onLine) {
+                // If we're in a PWA and online, just go to main page
+                window.location.href = '/';
+            } else {
+                // Redirect to main page with local mode
+                window.location.href = '/?mode=local&offline=true';
+            }
         }
         
         // Auto-retry when connection is restored
         window.addEventListener('online', () => {
             window.location.href = '/';
         });
+        
+        // If we're in an installed PWA and online, redirect immediately
+        if ((window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) && navigator.onLine) {
+            window.location.href = '/';
+        }
     </script>
 </body>
 </html>

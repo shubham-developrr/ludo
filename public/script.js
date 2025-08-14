@@ -4,18 +4,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const mode = urlParams.get('mode');
     const isOffline = urlParams.get('offline') === 'true';
     
-    const socket = !isOffline ? io() : null;
+    // Check if we're in an installed PWA
+    const isPWAInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
+    // Only use offline mode if we're actually offline or explicitly requested
+    const shouldUseOfflineMode = isOffline && !navigator.onLine;
+    
+    const socket = !shouldUseOfflineMode ? io() : null;
 
     // Add initial lobby screen class
     document.body.classList.add('lobby-screen');
 
-    // Handle offline mode
-    if (isOffline) {
+    // Handle offline mode only if truly offline
+    if (shouldUseOfflineMode) {
         showOfflineIndicator();
     }
 
-    // Auto-switch to local mode if specified in URL
-    if (mode === 'local') {
+    // Auto-switch to local mode if specified in URL or if we're offline
+    if (mode === 'local' || shouldUseOfflineMode) {
         setTimeout(() => switchToLocalMode(), 100);
     }
 
@@ -79,6 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show offline indicator
     function showOfflineIndicator() {
+        // Only show if we're actually offline and not in an installed PWA
+        if (navigator.onLine && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone)) {
+            // We're in an installed PWA and online, don't show offline message
+            return;
+        }
+        
         // Disable online mode
         onlineModeBtn.disabled = true;
         onlineModeBtn.style.opacity = '0.5';
@@ -87,24 +99,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auto-switch to local mode
         switchToLocalMode();
         
-        // Show offline message
-        const offlineMsg = document.createElement('div');
-        offlineMsg.className = 'offline-notice';
-        offlineMsg.innerHTML = '🔌 Playing offline - only local games available';
-        offlineMsg.style.cssText = `
-            background: #ff9800;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 14px;
-        `;
-        
-        const lobbyBox = document.querySelector('.lobby-box');
-        if (lobbyBox) {
-            lobbyBox.insertBefore(offlineMsg, lobbyBox.firstChild.nextSibling);
+        // Only show offline message if truly offline
+        if (!navigator.onLine) {
+            const offlineMsg = document.createElement('div');
+            offlineMsg.className = 'offline-notice';
+            offlineMsg.innerHTML = '🔌 Playing offline - only local games available';
+            offlineMsg.style.cssText = `
+                background: #ff9800;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                margin-bottom: 15px;
+                text-align: center;
+                font-size: 14px;
+            `;
+            
+            const lobbyBox = document.querySelector('.lobby-box');
+            if (lobbyBox) {
+                lobbyBox.insertBefore(offlineMsg, lobbyBox.firstChild.nextSibling);
+            }
         }
+    }
+
+    // Remove offline indicator
+    function removeOfflineIndicator() {
+        const offlineNotice = document.querySelector('.offline-notice');
+        if (offlineNotice) {
+            offlineNotice.remove();
+        }
+        
+        // Re-enable online mode
+        onlineModeBtn.disabled = false;
+        onlineModeBtn.style.opacity = '1';
+        onlineModeBtn.title = '';
     }
 
     // Player count change handler
@@ -1062,6 +1089,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Make offline indicator functions globally available for PWA manager
+    window.showOfflineIndicator = showOfflineIndicator;
+    window.removeOfflineIndicator = removeOfflineIndicator;
 
     // --- INITIALIZATION ---
     setupLobbyListeners();
